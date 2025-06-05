@@ -6,12 +6,15 @@ mod implementation;
 
 pub use implementation::private;
 
+#[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Hash)]
+pub struct TypeId(pub(crate) NonZeroU32);
+
 pub trait HasTypeId: 'static {
-    const TYPE_ID: NonZeroU32;
+    const TYPE_ID: TypeId;
 }
 
 pub struct TypeEntry {
-    pub type_id: NonZeroU32,
+    pub type_id: TypeId,
     #[cfg(feature = "debug_type_name")]
     pub type_name: &'static str,
 }
@@ -19,3 +22,65 @@ pub struct TypeEntry {
 pub fn iter_registered_entries() -> impl Iterator<Item = TypeEntry> {
     implementation::iter_registered_entries()
 }
+
+#[derive(Debug, Clone, Copy)]
+pub struct ErrorFromZeroBytes {}
+
+impl TypeId {
+    pub const fn from_user_code(code: NonZeroU32) -> Self {
+        assert!(
+            code.get() & 0x8000_0000 != 0x8000_0000,
+            "User provided codes must set most significant byte to distinguish it from derived ones.",
+        );
+        Self(code)
+    }
+
+    #[inline]
+    pub const fn as_u32(self) -> u32 {
+        self.0.get()
+    }
+
+    #[cfg(not(target_pointer_width = "16"))]
+    #[inline]
+    pub const fn as_usize(self) -> usize {
+        self.0.get() as _
+    }
+
+    #[inline]
+    pub const fn to_bytes(self) -> [u8; 4] {
+        self.0.get().to_le_bytes()
+    }
+
+    // TODO(2025-06-06): Use specific error.
+    #[inline]
+    pub const fn from_bytes(bytes: [u8; 4]) -> Result<Self, ErrorFromZeroBytes> {
+        let val = u32::from_le_bytes(bytes);
+        if let Some(x) = NonZeroU32::new(val) {
+            Ok(Self(x))
+        } else {
+            Err(ErrorFromZeroBytes {})
+        }
+    }
+}
+
+impl core::fmt::Debug for TypeId {
+    #[inline]
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:X}", self.0.get())
+    }
+}
+
+impl core::fmt::Display for TypeId {
+    #[inline]
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:X}", self.0.get())
+    }
+}
+
+impl core::fmt::Display for ErrorFromZeroBytes {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("ErrorFromZeroBytes")
+    }
+}
+
+impl core::error::Error for ErrorFromZeroBytes {}

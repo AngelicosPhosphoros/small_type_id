@@ -3,15 +3,28 @@ use core::ptr;
 use core::sync::atomic::AtomicPtr;
 use core::sync::atomic::Ordering::{AcqRel, Acquire, Relaxed};
 
+use crate::TypeId;
+
 #[doc(hidden)]
 pub mod private {
     use super::*;
 
     pub struct TypeEntry {
-        pub(super) type_id: NonZeroU32,
+        pub(super) type_id: TypeId,
         #[cfg(feature = "debug_type_name")]
         pub(super) type_name: &'static str,
         pub(super) next: AtomicPtr<TypeEntry>,
+    }
+
+    impl TypeEntry {
+        pub const fn new(module_and_name: &'static str) -> TypeEntry {
+            Self {
+                type_id: compute_id(module_and_name),
+                #[cfg(feature = "debug_type_name")]
+                type_name: module_and_name,
+                next: AtomicPtr::new(ptr::null_mut()),
+            }
+        }
     }
 
     #[cold]
@@ -44,10 +57,10 @@ pub mod private {
         }
     }
 
-    pub const fn compute_id(name_with_module_path: &str) -> NonZeroU32 {
+    pub const fn compute_id(name_with_module_path: &str) -> TypeId {
         let hash = murmur_v3(name_with_module_path.as_bytes(), MURMUR_SEED);
         let val = if hash == 0 { 1 } else { hash } & 0x7FFF_FFFF_u32;
-        NonZeroU32::new(val).unwrap()
+        TypeId(NonZeroU32::new(val).unwrap())
     }
 }
 
@@ -120,13 +133,10 @@ const fn murmur_32_scramble(k: u32) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::num::NonZeroU32;
 
-    const MY_HASH: NonZeroU32 = NonZeroU32::new(murmur_v3(
-        concat!(module_path!(), "::", "MyType").as_bytes(),
-        55979,
-    ))
-    .unwrap();
+    // This checks that we can compute const hash in compile time.
+    #[allow(unused)]
+    const MY_HASH: TypeId = private::compute_id(concat!(module_path!(), "::", "MyType"));
 
     #[test]
     fn murmur() {
@@ -157,19 +167,23 @@ mod tests {
     #[test]
     fn compute_id() {
         use private::compute_id;
-        fn n(v: u32) -> NonZeroU32 {
-            v.try_into().unwrap()
-        }
+
+        let _my_hash = MY_HASH;
 
         // This would be used for testing duplicate lookup in types.
         assert_eq!(compute_id("assaulted"), compute_id("nonescape"));
-        assert_eq!(compute_id("assaulted"), n(0x3BD11B2D));
+        assert_eq!(compute_id("assaulted").as_u32(), 0x3BD11B2D);
 
-        assert_eq!(compute_id("usize"), n(0x3CAC743E));
+        assert_eq!(compute_id("usize").as_u32(), 0x3CAC743E);
 
         // Check that we do not generate zeros.
         assert_eq!(murmur_v3(b"sascmxrw", MURMUR_SEED), 0);
-        assert_ne!(compute_id("sascmxrw").get(), 0);
-        assert_eq!(compute_id("sascmxrw"), n(1));
+        assert_ne!(compute_id("sascmxrw").as_u32(), 0);
+        assert_eq!(compute_id("sascmxrw").as_u32(), 1);
+
+        assert_eq!(u32::MAX >> 31, 1);
+        assert_eq!(compute_id("assaulted").as_u32() >> 31, 0);
+        assert_eq!(compute_id("usize").as_u32() >> 31, 0);
+        assert_eq!(compute_id("sascmxrw").as_u32() >> 31, 0);
     }
 }
