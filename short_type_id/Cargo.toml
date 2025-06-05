@@ -3,4 +3,8 @@ name = "short_type_id"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+debug_type_name = []
+unsafe_remove_duplicate_checks = []
+
 [dependencies]
