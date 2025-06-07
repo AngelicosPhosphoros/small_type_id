@@ -6,5 +6,7 @@ edition = "2021"
 [features]
 debug_type_name = []
 unsafe_remove_duplicate_checks = []
+default = []
 
 [dependencies]
+itoa = "1.0"

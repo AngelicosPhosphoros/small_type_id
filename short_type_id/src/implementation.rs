@@ -29,7 +29,11 @@ pub mod private {
 
     #[cold]
     pub unsafe fn register_type(entry: &'static TypeEntry) {
-        debug_assert!(entry.next.load(Relaxed).is_null());
+        debug_assert!(
+            entry.next.load(Relaxed).is_null(),
+            "TypeEntries must be generated only using macro"
+        );
+
         let mut next = LAST_ADDED_TYPE.load(Relaxed);
         loop {
             entry.next.store(next, Relaxed);
@@ -47,9 +51,18 @@ pub mod private {
             let start = LAST_ADDED_TYPE.load(Acquire);
             let mut it_slow = start;
             while it_slow.is_null() {
+                let typeid = (*it_slow).type_id;
                 let mut it_fast = (*it_slow).next.load(Relaxed);
                 while it_fast.is_null() {
-                    assert_ne!((*it_slow).type_id, (*it_fast).type_id);
+                    if (*it_fast).type_id == typeid {
+                        handle_duplicate_typeid(
+                            typeid,
+                            #[cfg(feature = "debug_type_name")]
+                            (*it_fast).type_name,
+                            #[cfg(feature = "debug_type_name")]
+                            (*it_slow).type_name,
+                        );
+                    }
                     it_fast = (*it_fast).next.load(Relaxed);
                 }
                 it_slow = (*it_slow).next.load(Relaxed);
@@ -128,6 +141,109 @@ const fn murmur_32_scramble(k: u32) -> u32 {
     k.wrapping_mul(0xcc9e2d51)
         .rotate_left(15)
         .wrapping_mul(0x1b873593)
+}
+
+#[cfg(all(not(feature = "unsafe_remove_duplicate_checks"), unix))]
+mod unix {
+    #[repr(C)]
+    pub(super) struct File(core::ffi::c_void);
+    pub(super) const STDERR_FILENO: i32 = 2;
+}
+#[cfg(all(not(feature = "unsafe_remove_duplicate_checks"), unix))]
+extern "C" {
+    fn fdopen(fd: i32, mode: *const u8) -> *mut unix::File;
+    fn fwrite(buffer: *const u8, elem_size: usize, len: usize, file: *mut unix::File) -> usize;
+    fn fflush(file: *mut unix::File) -> i32;
+    fn abort() -> !;
+}
+
+#[cfg(windows)]
+mod win {
+    pub(super) type Handle = u32;
+    pub(super) const STD_ERROR_HANDLE: Handle = 4294967284u32;
+    pub(super) const PROCESS_TERMINATE_ACCESS: u32 = 1;
+}
+#[cfg(windows)]
+#[link(name = "Kernel32", kind = "dylib")]
+extern "system" {
+    fn GetStdHandle(handle: win::Handle) -> win::Handle;
+    fn WriteFile(
+        file_handle: win::Handle,
+        buffer: *const u8,
+        len: u32,
+        bytes_written: *mut u32,
+        overlapping: *mut (),
+    ) -> i32;
+    fn GetCurrentProcessId() -> u32;
+    fn OpenProcess(desired_acces: u32, inherit_handle: i32, process_id: u32) -> win::Handle;
+    fn TerminateProcess(handle: win::Handle, exit_code: u32) -> i32;
+}
+
+#[cold]
+#[inline(never)]
+fn handle_duplicate_typeid(
+    type_id: TypeId,
+    #[cfg(feature = "debug_type_name")] type_name1: &str,
+    #[cfg(feature = "debug_type_name")] type_name2: &str,
+) -> ! {
+    let mut int_buffer = itoa::Buffer::new();
+    let type_id_str: &str = int_buffer.format(type_id.as_u32());
+    // Safety: well, we just call libc or WinAPI functions.
+    // This code runs before main so we cannot run code from stdlib so we can't really synchronize access to stderr.
+    // It probably the only running thread in application.
+    // Anyway, this function ends by terminates current process so any memory unsafety would end here.
+    unsafe {
+        #[cfg(unix)]
+        let stderr: *mut unix::File = fdopen(unix::STDERR_FILENO, b"a\0".as_ptr());
+        #[cfg(windows)]
+        let stderr: win::Handle = GetStdHandle(win::STD_ERROR_HANDLE);
+        #[cfg(unix)]
+        let eprint_str = |s: &str| {
+            fwrite(s.as_ptr(), 1, s.len(), stderr);
+        };
+        #[cfg(windows)]
+        let eprint_str = |s: &str| {
+            WriteFile(
+                stderr,
+                s.as_ptr(),
+                s.len() as _,
+                core::ptr::null_mut(),
+                core::ptr::null_mut(),
+            );
+        };
+
+        eprint_str("short_type_id: Found duplicate type_id ");
+        eprint_str(type_id_str);
+        #[cfg(not(feature = "debug_type_name"))]
+        {
+            eprint_str(r#". Consider enabling "debug_type_name" feature to display conflicting type names"#);
+        }
+        #[cfg(feature = "debug_type_name")]
+        {
+            eprint_str(" for types ");
+            eprint_str(type_name1);
+            eprint_str(" and ");
+            eprint_str(type_name2);
+        }
+        eprint_str(".\n");
+
+        #[cfg(unix)]
+        {
+            fflush(stderr);
+            abort();
+        }
+        #[cfg(windows)]
+        {
+            let current_process_id = GetCurrentProcessId();
+            let current_process_handle = OpenProcess(
+                win::PROCESS_TERMINATE_ACCESS,
+                false as _,
+                current_process_id,
+            );
+            TerminateProcess(current_process_handle, 2);
+            unreachable!();
+        }
+    }
 }
 
 #[cfg(test)]
