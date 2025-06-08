@@ -9,6 +9,7 @@ mod implementation;
 pub use implementation::private;
 
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
 pub struct TypeId(pub(crate) NonZeroU32);
 
 pub trait HasTypeId: 'static {
@@ -31,6 +32,8 @@ pub fn iter_registered_entries() -> impl Iterator<Item = TypeEntry> {
 pub struct ErrorFromZeroBytes {}
 
 impl TypeId {
+    #[must_use]
+    #[inline]
     pub const fn from_user_code(code: NonZeroU32) -> Self {
         assert!(
             code.get() & 0x8000_0000 == 0x8000_0000,
@@ -39,17 +42,20 @@ impl TypeId {
         Self(code)
     }
 
+    #[must_use]
     #[inline]
     pub const fn as_u32(self) -> u32 {
         self.0.get()
     }
 
     #[cfg(not(target_pointer_width = "16"))]
+    #[must_use]
     #[inline]
     pub const fn as_usize(self) -> usize {
         self.0.get() as _
     }
 
+    #[must_use]
     #[inline]
     pub const fn to_bytes(self) -> [u8; 4] {
         self.0.get().to_le_bytes()

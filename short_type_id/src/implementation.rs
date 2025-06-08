@@ -5,6 +5,7 @@ use core::sync::atomic::Ordering::{AcqRel, Acquire, Relaxed};
 
 use crate::{hex, TypeId};
 
+// Functions and types used in macro generated code.
 #[doc(hidden)]
 pub mod private {
     use super::*;
@@ -17,11 +18,12 @@ pub mod private {
     }
 
     impl TypeEntry {
-        pub const fn new(type_name: &'static str, name_and_crate_version: &str) -> TypeEntry {
+        #[must_use]
+        pub const fn new(type_name: &'static str, type_id: TypeId) -> TypeEntry {
             let _ = type_name;
 
             Self {
-                type_id: compute_id(name_and_crate_version),
+                type_id,
                 next: AtomicPtr::new(ptr::null_mut()),
                 #[cfg(feature = "debug_type_name")]
                 type_name,
@@ -39,7 +41,7 @@ pub mod private {
         let mut next = LAST_ADDED_TYPE.load(Relaxed);
         loop {
             entry.next.store(next, Relaxed);
-            let p = entry as *const TypeEntry as *mut _;
+            let p = ptr::from_ref(entry).cast_mut();
             match LAST_ADDED_TYPE.compare_exchange_weak(next, p, AcqRel, Relaxed) {
                 Ok(_) => break,
                 Err(p) => next = p,
@@ -72,14 +74,31 @@ pub mod private {
         }
     }
 
-    pub const fn compute_id(name_with_module_path: &str) -> TypeId {
-        let hash = murmur_v3(name_with_module_path.as_bytes(), MURMUR_SEED);
+    #[must_use]
+    pub const fn compute_id(module_name_version: &[u8]) -> TypeId {
+        let hash = murmur_v3(module_name_version, MURMUR_SEED);
         let val = if hash == 0 { 1 } else { hash } & 0x7FFF_FFFF_u32;
         TypeId(NonZeroU32::new(val).unwrap())
     }
+
+    /// Useful for concatenating byte slices in compile time.
+    /// This exists solely to be able to compile Rust code without cargo
+    /// which prevents us fron getting current package version using [env!()][1] macro
+    /// with [CARGO_PKG_VERSION][2] environment variable.
+    ///
+    /// [1]: https://doc.rust-lang.org/std/macro.env.html
+    /// [2]: https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
+    #[must_use]
+    pub const fn concat_bytes<const SUM_LEN: usize>(s0: &[u8], s1: &[u8]) -> [u8; SUM_LEN] {
+        let mut res = [0; SUM_LEN];
+        let (a, b) = res.split_at_mut(s0.len());
+        a.copy_from_slice(s0);
+        b.copy_from_slice(s1);
+        res
+    }
 }
 
-const MURMUR_SEED: u32 = 0xF1D4B28B;
+const MURMUR_SEED: u32 = 0xF1D4_B28B;
 static LAST_ADDED_TYPE: AtomicPtr<private::TypeEntry> = AtomicPtr::new(ptr::null_mut());
 
 pub(crate) fn iter_registered_entries() -> impl Iterator<Item = crate::TypeEntry> {
@@ -98,6 +117,7 @@ pub(crate) fn iter_registered_entries() -> impl Iterator<Item = crate::TypeEntry
     })
 }
 
+#[must_use]
 const fn murmur_v3(src: &[u8], seed: u32) -> u32 {
     let mut h: u32 = seed;
     let mut i = 0;
@@ -113,7 +133,7 @@ const fn murmur_v3(src: &[u8], seed: u32) -> u32 {
 
         h ^= murmur_32_scramble(k);
         h = h.rotate_left(13);
-        h = h.wrapping_mul(5).wrapping_add(0xE6546B64);
+        h = h.wrapping_mul(5).wrapping_add(0xE654_6B64);
     }
     if i < src.len() {
         // Read next bytes as little endian number until end.
@@ -128,21 +148,25 @@ const fn murmur_v3(src: &[u8], seed: u32) -> u32 {
         h ^= murmur_32_scramble(k);
     }
 
+    assert!(src.len() <= u32::MAX as usize);
+    #[allow(clippy::cast_possible_truncation)]
     let len = src.len() as u32;
+
     h ^= len;
     h ^= h >> 16;
-    h = u32::wrapping_mul(h, 0x85ebca6b);
+    h = u32::wrapping_mul(h, 0x85eb_ca6b);
     h ^= h >> 13;
-    h = u32::wrapping_mul(h, 0xc2b2ae35);
+    h = u32::wrapping_mul(h, 0xc2b2_ae35);
     h ^= h >> 16;
 
     h
 }
 
+#[must_use]
 const fn murmur_32_scramble(k: u32) -> u32 {
-    k.wrapping_mul(0xcc9e2d51)
+    k.wrapping_mul(0xcc9e_2d51)
         .rotate_left(15)
-        .wrapping_mul(0x1b873593)
+        .wrapping_mul(0x1b87_3593)
 }
 
 #[cfg(all(not(feature = "unsafe_remove_duplicate_checks"), unix))]
@@ -162,7 +186,7 @@ extern "C" {
 #[cfg(windows)]
 mod win {
     pub(super) type Handle = u32;
-    pub(super) const STD_ERROR_HANDLE: Handle = 4294967284u32;
+    pub(super) const STD_ERROR_HANDLE: Handle = 0xFFFF_FFF4;
     pub(super) const PROCESS_TERMINATE_ACCESS: u32 = 1;
 }
 #[cfg(windows)]
@@ -207,9 +231,9 @@ fn handle_duplicate_typeid(
             WriteFile(
                 stderr,
                 s.as_ptr(),
-                s.len() as _,
-                core::ptr::null_mut(),
-                core::ptr::null_mut(),
+                s.len().try_into().unwrap(),
+                ptr::null_mut(),
+                ptr::null_mut(),
             );
         };
 
@@ -240,7 +264,7 @@ fn handle_duplicate_typeid(
             let current_process_id = GetCurrentProcessId();
             let current_process_handle = OpenProcess(
                 win::PROCESS_TERMINATE_ACCESS,
-                false as _,
+                false.into(),
                 current_process_id,
             );
             TerminateProcess(current_process_handle, 2);
@@ -253,9 +277,57 @@ fn handle_duplicate_typeid(
 mod tests {
     use super::*;
 
-    // This checks that we can compute const hash in compile time.
+    // This checks that we can compute const TypeId in compile time.
     #[allow(unused)]
-    const MY_HASH: TypeId = private::compute_id(concat!(module_path!(), "::", "MyType"));
+    const MY_HASH: TypeId = private::compute_id(concat!(module_path!(), "::", "MyType").as_bytes());
+    #[allow(unused)]
+    const MY_HASH_AND_CRATE: TypeId = {
+        const CRATE_VERSION: &str = if let Some(x) = Some("0.1.1") { x } else { "" };
+        if CRATE_VERSION.is_empty() {
+            private::compute_id(concat!(module_path!(), "::", "MyType").as_bytes())
+        } else {
+            const SUM_LEN: usize =
+                concat!(module_path!(), "::", "MyType", "::").len() + CRATE_VERSION.len();
+            let concatenated: [u8; SUM_LEN] = private::concat_bytes(
+                concat!(module_path!(), "::", "MyType", "::").as_bytes(),
+                CRATE_VERSION.as_bytes(),
+            );
+            private::compute_id(&concatenated)
+        }
+    };
+    #[allow(unused)]
+    const MY_HASH_AND_NO_CRATE: TypeId = {
+        const CRATE_VERSION: &str = if let Some(x) = None { x } else { "" };
+        if CRATE_VERSION.is_empty() {
+            private::compute_id(concat!(module_path!(), "::", "MyType").as_bytes())
+        } else {
+            const SUM_LEN: usize =
+                concat!(module_path!(), "::", "MyType", "::").len() + CRATE_VERSION.len();
+            let concatenated: [u8; SUM_LEN] = private::concat_bytes(
+                concat!(module_path!(), "::", "MyType", "::").as_bytes(),
+                CRATE_VERSION.as_bytes(),
+            );
+            private::compute_id(&concatenated)
+        }
+    };
+
+    #[test]
+    fn check_constants() {
+        assert_eq!(
+            murmur_v3(b"short_type_id::implementation::tests::MyType", MURMUR_SEED),
+            0x6FFDD6CA
+        );
+        assert_eq!(
+            murmur_v3(
+                b"short_type_id::implementation::tests::MyType::0.1.1",
+                MURMUR_SEED
+            ),
+            0x611E8FFD
+        );
+        assert_eq!(MY_HASH.as_u32(), 0x6FFDD6CA);
+        assert_eq!(MY_HASH_AND_CRATE.as_u32(), 0x611E8FFD);
+        assert_eq!(MY_HASH_AND_NO_CRATE.as_u32(), 0x6FFDD6CA);
+    }
 
     #[test]
     fn murmur() {
@@ -290,19 +362,41 @@ mod tests {
         let _my_hash = MY_HASH;
 
         // This would be used for testing duplicate lookup in types.
-        assert_eq!(compute_id("assaulted"), compute_id("nonescape"));
-        assert_eq!(compute_id("assaulted").as_u32(), 0x3BD11B2D);
+        assert_eq!(compute_id(b"assaulted"), compute_id(b"nonescape"));
+        assert_eq!(compute_id(b"assaulted").as_u32(), 0x3BD11B2D);
 
-        assert_eq!(compute_id("usize").as_u32(), 0x3CAC743E);
+        assert_eq!(compute_id(b"usize").as_u32(), 0x3CAC743E);
 
         // Check that we do not generate zeros.
         assert_eq!(murmur_v3(b"sascmxrw", MURMUR_SEED), 0);
-        assert_ne!(compute_id("sascmxrw").as_u32(), 0);
-        assert_eq!(compute_id("sascmxrw").as_u32(), 1);
+        assert_ne!(compute_id(b"sascmxrw").as_u32(), 0);
+        assert_eq!(compute_id(b"sascmxrw").as_u32(), 1);
 
         assert_eq!(u32::MAX >> 31, 1);
-        assert_eq!(compute_id("assaulted").as_u32() >> 31, 0);
-        assert_eq!(compute_id("usize").as_u32() >> 31, 0);
-        assert_eq!(compute_id("sascmxrw").as_u32() >> 31, 0);
+        assert_eq!(compute_id(b"assaulted").as_u32() >> 31, 0);
+        assert_eq!(compute_id(b"usize").as_u32() >> 31, 0);
+        assert_eq!(compute_id(b"sascmxrw").as_u32() >> 31, 0);
+    }
+
+    #[test]
+    fn test_concat_strs() {
+        let hello_world = const { private::concat_bytes::<12>(b"Hello ", b"world!") };
+        assert_eq!(hello_world, *b"Hello world!");
+        let world = const { private::concat_bytes::<6>(b"", b"world!") };
+        assert_eq!(world, *b"world!");
+        let hello = const { private::concat_bytes::<6>(b"Hello ", b"") };
+        assert_eq!(hello, *b"Hello ");
+    }
+
+    #[test]
+    #[should_panic]
+    fn too_short_not_ok() {
+        let _ = private::concat_bytes::<11>(b"Hello ", b"world!");
+    }
+
+    #[test]
+    #[should_panic]
+    fn too_large_not_ok() {
+        let _ = private::concat_bytes::<13>(b"Hello ", b"world!");
     }
 }
