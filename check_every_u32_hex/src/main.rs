@@ -4,16 +4,16 @@ use core::num::NonZeroUsize;
 use std::thread;
 use std::time::Instant;
 
-#[path ="../../short_type_id/src/hex.rs"]
+#[path = "../../short_type_id/src/hex.rs"]
 mod hex;
 
 fn main() {
-    println!("Starting multi thread...");
+    println!("Starting checking values in multi thread...");
     let start = Instant::now();
     visit_multi_thread();
     let elapsed = start.elapsed();
     println!(
-        "Visit all u32 in multiple threads took {:.3} secs",
+        "Checking all u32 in multiple threads took {:.3} secs",
         elapsed.as_secs_f64()
     );
 }

@@ -21,34 +21,39 @@ impl HexView {
         }
     }
 
-    pub(crate) const fn new(mut val: u32) -> HexView {
-        let mut buffer = [0; MAX_HEX_DIGITS];
-        let mut pos = 0;
+    pub(crate) const fn new(val: u32) -> HexView {
+        let leading_zeros: usize = val.leading_zeros() as usize;
+        let len: usize = if leading_zeros / 4 >= 8 {
+            1
+        } else {
+            8 - leading_zeros / 4
+        };
+
+        let mut buffer = [0; 8];
+        let mut it = unsafe { buffer.as_mut_ptr().add(len) };
+        let mut v = val;
         loop {
-            let digit = (val & 0xF) as u8;
-            val >>= 4;
+            unsafe {
+                // We do subs weirdly in the start of the loop to satisfy MIRI provenance rules.
+                it = it.sub(1);
+            }
 
+            let digit: u8 = (v & 0xF) as u8;
+            v >>= 4;
             let offset = if digit < 10 { b'0' } else { b'A' - 10 };
-            buffer[pos] = digit + offset;
-            pos += 1;
-
-            if val == 0 {
+            let digit = digit + offset;
+            unsafe {
+                *it = digit;
+            }
+            if v == 0 {
                 break;
             }
         }
-        debug_assert!(pos <= MAX_HEX_DIGITS);
-        // Can't use buffer[..pos].reverse() because it is not const stable yet.
-        let mut i = 0;
-        let mut j = pos - 1;
-        while i < j {
-            buffer.swap(i, j);
-            i += 1;
-            j -= 1;
-        }
+        debug_assert!(buffer[0] != 0);
 
         HexView {
             buffer,
-            len: NonZeroUsize::new(pos).unwrap(),
+            len: NonZeroUsize::new(len).unwrap(),
         }
     }
 }
