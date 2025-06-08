@@ -3,7 +3,7 @@ use core::ptr;
 use core::sync::atomic::AtomicPtr;
 use core::sync::atomic::Ordering::{AcqRel, Acquire, Relaxed};
 
-use crate::TypeId;
+use crate::{hex, TypeId};
 
 #[doc(hidden)]
 pub mod private {
@@ -186,8 +186,7 @@ fn handle_duplicate_typeid(
     #[cfg(feature = "debug_type_name")] type_name1: &str,
     #[cfg(feature = "debug_type_name")] type_name2: &str,
 ) -> ! {
-    let mut int_buffer = itoa::Buffer::new();
-    let type_id_str: &str = int_buffer.format(type_id.as_u32());
+    let hex_val = hex::HexView::new(type_id.as_u32());
     // Safety: well, we just call libc or WinAPI functions.
     // This code runs before main so we cannot run code from stdlib so we can't really synchronize access to stderr.
     // It probably the only running thread in application.
@@ -213,10 +212,12 @@ fn handle_duplicate_typeid(
         };
 
         eprint_str("short_type_id: Found duplicate type_id ");
-        eprint_str(type_id_str);
+        eprint_str(hex_val.as_str());
         #[cfg(not(feature = "debug_type_name"))]
         {
-            eprint_str(r#". Consider enabling "debug_type_name" feature to display conflicting type names"#);
+            eprint_str(
+                r#". Consider enabling "debug_type_name" feature to display conflicting type names"#,
+            );
         }
         #[cfg(feature = "debug_type_name")]
         {

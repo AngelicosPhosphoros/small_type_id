@@ -1,8 +1,9 @@
 #![deny(unsafe_op_in_unsafe_fn)]
-#![no_std]
+#![cfg_attr(not(test), no_std)]
 
 use core::num::NonZeroU32;
 
+mod hex;
 mod implementation;
 
 pub use implementation::private;
@@ -68,16 +69,22 @@ impl TypeId {
 impl core::fmt::Debug for TypeId {
     #[inline]
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        core::fmt::Display::fmt(&self, f)
+        core::fmt::UpperHex::fmt(&self, f)
     }
 }
 
 impl core::fmt::Display for TypeId {
     #[inline]
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        let mut buffer = itoa::Buffer::new();
-        let s = buffer.format(self.as_u32());
-        f.write_str(s)
+        core::fmt::UpperHex::fmt(&self, f)
+    }
+}
+
+impl core::fmt::UpperHex for TypeId {
+    #[inline]
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let hx = hex::HexView::new(self.as_u32());
+        f.write_str(hx.as_str())
     }
 }
 
