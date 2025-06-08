@@ -2,6 +2,7 @@ use core::num::NonZeroUsize;
 
 const MAX_HEX_DIGITS: usize = core::mem::size_of::<u32>() * 2;
 
+// Note that its implementation also tested using check_every_u32_hex code using Address Sanitizer
 pub(crate) struct HexView {
     buffer: [u8; MAX_HEX_DIGITS],
     // Invariant: less than buffer, more than 1

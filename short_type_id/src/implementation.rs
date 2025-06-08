@@ -17,12 +17,14 @@ pub mod private {
     }
 
     impl TypeEntry {
-        pub const fn new(module_and_name: &'static str) -> TypeEntry {
+        pub const fn new(type_name: &'static str, name_and_crate_version: &str) -> TypeEntry {
+            let _ = type_name;
+
             Self {
-                type_id: compute_id(module_and_name),
-                #[cfg(feature = "debug_type_name")]
-                type_name: module_and_name,
+                type_id: compute_id(name_and_crate_version),
                 next: AtomicPtr::new(ptr::null_mut()),
+                #[cfg(feature = "debug_type_name")]
+                type_name,
             }
         }
     }
