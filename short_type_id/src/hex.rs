@@ -22,38 +22,36 @@ impl HexView {
     }
 
     pub(crate) const fn new(val: u32) -> HexView {
-        let leading_zeros: usize = val.leading_zeros() as usize;
-        let len: usize = if leading_zeros / 4 >= 8 {
+        let len: u32 = if val == 0 {
             1
         } else {
-            8 - leading_zeros / 4
+            8 - val.leading_zeros() / 4
         };
 
-        let mut buffer = [0; 8];
-        let mut it = unsafe { buffer.as_mut_ptr().add(len) };
-        let mut v = val;
-        loop {
-            unsafe {
-                // We do subs weirdly in the start of the loop to satisfy MIRI provenance rules.
-                it = it.sub(1);
-            }
+        let x = val as u64;
+        // 0x1234_ABCD => 0x1234_0000_ABCD;
+        let x = ((x & 0xFFFF_0000) << 16) | (x & 0xFFFF);
+        // 0x1234_0000_ABCD => 0x0012_0023_00AB_00CD
+        let x = ((x & 0xFF00_0000_FF00) << 8) | (x & 0x00FF_0000_00FF);
+        // 0x0012_0023_00AB_00CD => 0x0102_0203_0A0B_0C0D
+        let x = ((x & 0x00F0_00F0_00F0_00F0) << 4) | (x & 0x000F_000F_000F_000F);
+        // Remove leading zeros
+        let x = x << ((8 - len) * 8);
+        // Add 6 to every byte so we got 1 in larger half of bytes that
+        // contain values from 10
+        let mask = ((x + 0x0606_0606_0606_0606) & 0x1010_1010_1010_1010) >> 4;
+        let mask = mask * 0xFF;
+        let decimals = x & !mask;
+        let letters = x & mask;
+        const ADD_DIGITS: u64 = u64::from_le_bytes([b'0'; 8]);
+        const ADD_LETTERS: u64 = u64::from_le_bytes([b'A' - 10; 8]);
+        let x = ((decimals + ADD_DIGITS) & !mask) | ((letters + ADD_LETTERS) & mask);
 
-            let digit: u8 = (v & 0xF) as u8;
-            v >>= 4;
-            let offset = if digit < 10 { b'0' } else { b'A' - 10 };
-            let digit = digit + offset;
-            unsafe {
-                *it = digit;
-            }
-            if v == 0 {
-                break;
-            }
-        }
-        debug_assert!(buffer[0] != 0);
+        let buffer = x.to_be_bytes();
 
         HexView {
             buffer,
-            len: NonZeroUsize::new(len).unwrap(),
+            len: NonZeroUsize::new(len as usize).unwrap(),
         }
     }
 }

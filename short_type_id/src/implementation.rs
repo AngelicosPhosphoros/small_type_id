@@ -3,7 +3,7 @@ use core::ptr;
 use core::sync::atomic::AtomicPtr;
 use core::sync::atomic::Ordering::{AcqRel, Acquire, Relaxed};
 
-use crate::{hex, TypeId};
+use crate::{TypeId, hex};
 
 // Functions and types used in macro generated code.
 #[doc(hidden)]
