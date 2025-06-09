@@ -176,7 +176,7 @@ mod unix {
     pub(super) const STDERR_FILENO: i32 = 2;
 }
 #[cfg(all(not(feature = "unsafe_remove_duplicate_checks"), unix))]
-extern "C" {
+unsafe extern "C" {
     fn fdopen(fd: i32, mode: *const u8) -> *mut unix::File;
     fn fwrite(buffer: *const u8, elem_size: usize, len: usize, file: *mut unix::File) -> usize;
     fn fflush(file: *mut unix::File) -> i32;
@@ -191,7 +191,7 @@ mod win {
 }
 #[cfg(windows)]
 #[link(name = "Kernel32", kind = "dylib")]
-extern "system" {
+unsafe extern "system" {
     fn GetStdHandle(handle: win::Handle) -> win::Handle;
     fn WriteFile(
         file_handle: win::Handle,
