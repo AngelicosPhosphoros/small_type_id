@@ -4,7 +4,7 @@ use core::num::NonZeroUsize;
 use std::thread;
 use std::time::Instant;
 
-#[path = "../../short_type_id/src/hex.rs"]
+#[path = "../../../short_type_id/src/hex.rs"]
 mod hex;
 
 fn main() {

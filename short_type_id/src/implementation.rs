@@ -55,10 +55,10 @@ pub mod private {
         #[cfg(not(feature = "unsafe_remove_duplicate_checks"))]
         unsafe {
             let mut it_slow: *const TypeEntry = ptr::from_ref(entry);
-            while it_slow.is_null() {
+            while !it_slow.is_null() {
                 let typeid = (*it_slow).type_id;
                 let mut it_fast: *const TypeEntry = (*it_slow).next.load(Relaxed);
-                while it_fast.is_null() {
+                while !it_fast.is_null() {
                     if (*it_fast).type_id == typeid {
                         handle_duplicate_typeid(
                             typeid,
@@ -354,6 +354,11 @@ mod tests {
             murmur_v3(b"assaulted", MURMUR_SEED),
             murmur_v3(b"nonescape", MURMUR_SEED)
         );
+        // Same as test in extra_tests/duplicate_type_ids_handling
+        assert_eq!(
+            murmur_v3(b"duplicate_type_ids_handling::uaaaaa58::0.0.0", MURMUR_SEED),
+            murmur_v3(b"duplicate_type_ids_handling::iaaaac3b::0.0.0", MURMUR_SEED),
+        )
     }
 
     #[test]

@@ -1,5 +1,9 @@
 [workspace]
 members = [
     "short_type_id",
+    "short_type_id_derive",
+
+    "benches",
+    "extra_tests"
 ]
 resolver = "3"
