@@ -10,6 +10,8 @@ use crate::{TypeId, hex};
 pub mod private {
     use super::*;
 
+    pub use ctor::declarative::ctor;
+
     pub struct TypeEntry {
         pub(super) type_id: TypeId,
         #[cfg(feature = "debug_type_name")]
@@ -41,7 +43,7 @@ pub mod private {
         let mut next = LAST_ADDED_TYPE.load(Relaxed);
         loop {
             entry.next.store(next, Relaxed);
-            let p = ptr::from_ref(entry).cast_mut();
+            let p: *mut TypeEntry = ptr::from_ref(entry).cast_mut();
             match LAST_ADDED_TYPE.compare_exchange_weak(next, p, AcqRel, Relaxed) {
                 Ok(_) => break,
                 Err(p) => next = p,
@@ -52,11 +54,10 @@ pub mod private {
         // Unfortunately, it runs in quadratic time.
         #[cfg(not(feature = "unsafe_remove_duplicate_checks"))]
         unsafe {
-            let start = LAST_ADDED_TYPE.load(Acquire);
-            let mut it_slow = start;
+            let mut it_slow: *const TypeEntry = ptr::from_ref(entry);
             while it_slow.is_null() {
                 let typeid = (*it_slow).type_id;
-                let mut it_fast = (*it_slow).next.load(Relaxed);
+                let mut it_fast: *const TypeEntry = (*it_slow).next.load(Relaxed);
                 while it_fast.is_null() {
                     if (*it_fast).type_id == typeid {
                         handle_duplicate_typeid(

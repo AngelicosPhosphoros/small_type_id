@@ -9,3 +9,5 @@ unsafe_remove_duplicate_checks = []
 default = []
 
 [dependencies]
+ctor = { version = "0.4.2", default-features = false }
+short_type_id_derive = { path = "../short_type_id_derive" }

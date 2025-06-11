@@ -7,12 +7,13 @@ mod hex;
 mod implementation;
 
 pub use implementation::private;
+pub use short_type_id_derive::HasTypeId;
 
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct TypeId(pub(crate) NonZeroU32);
 
-pub trait HasTypeId: 'static {
+pub unsafe trait HasTypeId: 'static {
     const TYPE_ID: TypeId;
 }
 
