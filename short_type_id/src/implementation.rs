@@ -220,7 +220,7 @@ fn handle_duplicate_typeid(
     // Anyway, this function ends by terminates current process so any memory unsafety would end here.
     unsafe {
         #[cfg(unix)]
-        let stderr: *mut unix::File = fdopen(unix::STDERR_FILENO, b"a\0".as_ptr());
+        let stderr: *mut unix::File = fdopen(unix::STDERR_FILENO, c"a".as_ptr().cast());
         #[cfg(windows)]
         let stderr: win::Handle = GetStdHandle(win::STD_ERROR_HANDLE);
         #[cfg(unix)]
