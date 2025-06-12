@@ -81,3 +81,26 @@ fn iter_types() {
         .collect();
     assert_eq!(all_type_ids, second_iteration);
 }
+
+#[cfg(feature = "debug_type_name")]
+// MIRI unsupported until https://github.com/rust-lang/miri/issues/450 fixed
+#[cfg(not(miri))]
+#[test]
+fn test_id_to_name() {
+    use std::collections::HashMap;
+
+    #[rustfmt::skip]
+    let key_to_name: HashMap<TypeId, &str> = [
+            (MyType::TYPE_ID,              "basic::MyType"),
+            (EnumType::TYPE_ID,            "basic::EnumType"),
+            (UnionType::TYPE_ID,           "basic::UnionType"),
+            (some_module::MyType::TYPE_ID, "basic::some_module::MyType"),
+            (CheckRawKeyword::TYPE_ID,     "basic::CheckRawKeyword"),
+            (r#pub::TYPE_ID,               "basic::pub"),
+        ]
+        .into_iter()
+        .collect();
+    for entry in short_type_id::iter_registered_entries() {
+        assert_eq!(entry.type_name, key_to_name[&entry.type_id]);
+    }
+}

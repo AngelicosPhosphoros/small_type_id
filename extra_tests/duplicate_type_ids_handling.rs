@@ -5,7 +5,6 @@
 #![cfg(not(any(test, doctest)))]
 
 use std::collections::HashSet;
-use std::println;
 
 use short_type_id::HasTypeId;
 

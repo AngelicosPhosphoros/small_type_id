@@ -46,6 +46,12 @@ jobs:
         run: cargo build --verbose --workspace --exclude benches
       - name: Run tests
         run: cargo test --verbose --workspace --exclude benches
+      - name: Run tests
+        run: cargo test --verbose --workspace --exclude benches --features=debug_type_name
+      - name: Run tests
+        run: cargo test --verbose --workspace --exclude benches --features=unsafe_remove_duplicate_checks
+      - name: Run tests
+        run: cargo test --verbose --workspace --exclude benches --features=debug_type_name,unsafe_remove_duplicate_checks
       - name: Autodetect tests
         run: echo "Staring autodetect tests"
       - run: cargo build --verbose --workspace --bin duplicate_type_ids_handling
@@ -76,6 +82,7 @@ jobs:
       - run: rustup component add miri
       - name: Tests on MIRI
         run: cargo miri test --verbose --workspace --exclude benches
+      - run: cargo miri test --verbose --workspace --exclude benches --features=debug_type_name
   check-hex-formatting-using-address-sanitizer:
     # No need to run on others because code it crossplatform
     runs-on: ubuntu-latest
