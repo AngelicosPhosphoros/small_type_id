@@ -57,23 +57,19 @@ pub mod private {
         // Unfortunately, it runs in quadratic time.
         #[cfg(not(feature = "unsafe_remove_duplicate_checks"))]
         unsafe {
-            let mut it_slow: *const TypeEntry = ptr::from_ref(entry);
-            while !it_slow.is_null() {
-                let typeid = (*it_slow).type_id;
-                let mut it_fast: *const TypeEntry = (*it_slow).next.load(Relaxed);
-                while !it_fast.is_null() {
-                    if (*it_fast).type_id == typeid {
-                        handle_duplicate_typeid(
-                            typeid,
-                            #[cfg(feature = "debug_type_name")]
-                            (*it_fast).type_name,
-                            #[cfg(feature = "debug_type_name")]
-                            (*it_slow).type_name,
-                        );
-                    }
-                    it_fast = (*it_fast).next.load(Relaxed);
+            let typeid = entry.type_id;
+            let mut it: *const TypeEntry = entry.next.load(Relaxed);
+            while !it.is_null() {
+                if (*it).type_id == typeid {
+                    handle_duplicate_typeid(
+                        typeid,
+                        #[cfg(feature = "debug_type_name")]
+                        (*it).type_name,
+                        #[cfg(feature = "debug_type_name")]
+                        entry.type_name,
+                    );
                 }
-                it_slow = (*it_slow).next.load(Relaxed);
+                it = (*it).next.load(Relaxed);
             }
         }
     }
