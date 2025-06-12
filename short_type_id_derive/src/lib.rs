@@ -1,6 +1,6 @@
 #![allow(clippy::uninlined_format_args, clippy::missing_panics_doc)]
 
-//! This crate implements derive proc_macro for crate `short_type_id`.
+//! This crate implements derive `proc_macro` for crate `short_type_id`.
 //! It is intended to be used through `short_type_id::HasTypeId` reexport.
 
 use proc_macro::{Ident, Span, TokenStream, TokenTree};

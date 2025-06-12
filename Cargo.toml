@@ -5,6 +5,6 @@ members = [
 
     "benches",
     "extra_tests",
-    "check_every_u32_hex",
+    "check_every_u32_hex"
 ]
 resolver = "3"

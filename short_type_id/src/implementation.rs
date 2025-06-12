@@ -3,7 +3,9 @@ use core::ptr;
 use core::sync::atomic::AtomicPtr;
 use core::sync::atomic::Ordering::{AcqRel, Acquire, Relaxed};
 
-use crate::{TypeId, hex};
+use crate::TypeId;
+#[cfg(not(feature = "unsafe_remove_duplicate_checks"))]
+use crate::hex;
 
 // Functions and types used in macro generated code.
 #[doc(hidden)]
@@ -185,13 +187,13 @@ unsafe extern "C" {
     fn abort() -> !;
 }
 
-#[cfg(windows)]
+#[cfg(all(not(feature = "unsafe_remove_duplicate_checks"), windows))]
 mod win {
     pub(super) type Handle = u32;
     pub(super) const STD_ERROR_HANDLE: Handle = 0xFFFF_FFF4;
     pub(super) const PROCESS_TERMINATE_ACCESS: u32 = 1;
 }
-#[cfg(windows)]
+#[cfg(all(not(feature = "unsafe_remove_duplicate_checks"), windows))]
 #[link(name = "Kernel32", kind = "dylib")]
 unsafe extern "system" {
     fn GetStdHandle(handle: win::Handle) -> win::Handle;
@@ -207,6 +209,7 @@ unsafe extern "system" {
     fn TerminateProcess(handle: win::Handle, exit_code: u32) -> i32;
 }
 
+#[cfg(not(feature = "unsafe_remove_duplicate_checks"))]
 #[cold]
 #[inline(never)]
 fn handle_duplicate_typeid(
@@ -259,7 +262,7 @@ fn handle_duplicate_typeid(
         #[cfg(unix)]
         {
             fflush(stderr);
-            abort();
+            abort()
         }
         #[cfg(windows)]
         {
@@ -270,7 +273,7 @@ fn handle_duplicate_typeid(
                 current_process_id,
             );
             TerminateProcess(current_process_handle, 2);
-            unreachable!();
+            unreachable!()
         }
     }
 }

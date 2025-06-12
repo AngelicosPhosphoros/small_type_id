@@ -5,6 +5,7 @@
 #![cfg(not(any(test, doctest)))]
 
 use std::collections::HashSet;
+use std::println;
 
 use short_type_id::HasTypeId;
 
@@ -25,13 +26,27 @@ const _: () = {
 
 fn main() {
     let mut set = HashSet::new();
+    let mut tested = 0;
+    #[cfg(feature = "debug_type_name")]
+    let mut names = Vec::new();
     for entry in short_type_id::iter_registered_entries() {
-        println!("Checking {}", entry.type_id);
         if !set.insert(entry.type_id) {
             eprintln!(
                 "Detected error at the start of main! Found duplicate type_id {}.",
                 entry.type_id
             );
         }
+        tested += 1;
+        #[cfg(feature = "debug_type_name")]
+        names.push(entry.type_name);
+    }
+    println!("Tested {} entries, found {} types", tested, set.len());
+    #[cfg(feature = "debug_type_name")]
+    {
+        use std::println;
+
+        names.sort_unstable();
+        let joined = names.join(", ");
+        println!("Got names: {}", joined);
     }
 }

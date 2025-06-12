@@ -48,7 +48,7 @@ fn visit_multi_thread() {
     });
 }
 
-const REPORT_ADD_LIMIT: u64 = 1000_000;
+const REPORT_ADD_LIMIT: u64 = 1_000_000;
 const REPORT_LOG_LIMIT: u64 = 100_000_000;
 
 fn check_range(start: u32, end: u32, counter: &AtomicU64) {
@@ -79,6 +79,6 @@ fn check_range(start: u32, end: u32, counter: &AtomicU64) {
 fn update_counter(counter: &AtomicU64, num: u64) {
     let old_count = counter.fetch_add(num, Relaxed);
     if (old_count + num) / REPORT_LOG_LIMIT != old_count / REPORT_LOG_LIMIT {
-        println!("Processed {:10} nums...", old_count + num)
+        println!("Processed {:10} nums...", old_count + num);
     }
 }
