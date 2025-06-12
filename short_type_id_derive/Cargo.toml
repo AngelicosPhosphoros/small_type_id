@@ -2,6 +2,9 @@
 name = "short_type_id_derive"
 version = "0.1.0"
 edition = "2024"
+authors = ["Angelicos Phosphoros (Timur Khuzin) <angelicos.phosphoros@protonmail.com>"]
+description = "Crate for generation constant 32 bit nonzero unique identifiers for types."
+keywords = ["typeid", "no_std", "const"]
 
 [lib]
 proc-macro = true

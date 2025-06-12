@@ -2,6 +2,7 @@
 name = "extra_tests"
 version = "0.0.0"
 edition = "2024"
+publish = false
 
 [dependencies]
 short_type_id = { path = "../short_type_id" }

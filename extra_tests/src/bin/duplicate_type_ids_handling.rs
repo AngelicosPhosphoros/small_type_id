@@ -9,14 +9,14 @@ use std::collections::HashSet;
 use short_type_id::HasTypeId;
 
 #[derive(short_type_id::HasTypeId)]
-struct uaaaaa58 {
-    _f: u32,
+pub struct uaaaaa58 {
+    pub f: u32,
 }
 
 #[derive(short_type_id::HasTypeId)]
-enum iaaaac3b {
-    _A,
-    _B,
+pub enum iaaaac3b {
+    A,
+    B,
 }
 
 const _: () = {

@@ -1,7 +1,10 @@
 [package]
 name = "short_type_id"
-version = "0.2.0"
+version = "0.1.0"
 edition = "2024"
+authors = ["Angelicos Phosphoros (Timur Khuzin) <angelicos.phosphoros@protonmail.com>"]
+description = "Crate for generation constant 32 bit nonzero unique identifiers for types."
+keywords = ["typeid", "no_std", "const"]
 
 [features]
 debug_type_name = []
@@ -10,4 +13,4 @@ default = []
 
 [dependencies]
 ctor = { version = "0.4.2", default-features = false }
-short_type_id_derive = { path = "../short_type_id_derive" }
+short_type_id_derive = { path = "../short_type_id_derive", "version" = "0.1.0" }
