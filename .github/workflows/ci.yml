@@ -53,7 +53,7 @@ jobs:
       - run: rustup component add miri
       - name: Tests on MIRI
         run: cargo miri test --verbose --workspace --exclude benches
-  check-hex-formatting-using-sanitizer:
+  check-hex-formatting-using-address-sanitizer:
     # No need to run on others because code it crossplat-form
     runs-on: ubuntu-latest
     env:
