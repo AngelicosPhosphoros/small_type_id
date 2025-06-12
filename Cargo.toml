@@ -4,6 +4,7 @@ members = [
     "short_type_id_derive",
 
     "benches",
-    "extra_tests"
+    "extra_tests",
+    "check_every_u32_hex",
 ]
 resolver = "3"

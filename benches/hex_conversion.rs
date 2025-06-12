@@ -4,6 +4,7 @@ use std::hint::black_box;
 use criterion::BatchSize::LargeInput;
 use criterion::Criterion;
 
+#[allow(unused_imports)]
 #[path = "../short_type_id/src/hex.rs"]
 mod hex;
 

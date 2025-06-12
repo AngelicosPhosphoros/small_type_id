@@ -1,0 +1,9 @@
+[package]
+name = "check_every_u32_hex"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[[bin]]
+name = "check_every_u32_hex"
+path = "check_every_u32_hex.rs"

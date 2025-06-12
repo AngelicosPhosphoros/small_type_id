@@ -7,7 +7,7 @@ publish = false
 [dependencies]
 
 [dev-dependencies]
-criterion = "0.6.0"
+criterion = { version = "0.6.0", default-features = false }
 
 [[bench]]
 name = "hex_conversion"
