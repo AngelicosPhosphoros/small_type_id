@@ -1,3 +1,5 @@
+#![allow(clippy::uninlined_format_args)]
+
 use core::convert::{Into, TryInto};
 use core::fmt::Write as _;
 use core::num::NonZeroUsize;
@@ -22,7 +24,7 @@ fn visit_multi_thread() {
     let num_cores = thread::available_parallelism()
         .unwrap_or(NonZeroUsize::new(1).unwrap())
         .get() as u64;
-    let chunk_size = (u64::try_from(u32::MAX).unwrap() + 1) / num_cores + 1;
+    let chunk_size = ((u64::from(u32::MAX) + 1) / num_cores) + 1;
     thread::scope(move |scope| {
         for i in 0..num_cores {
             let start: u64 = i * chunk_size;
@@ -42,7 +44,7 @@ fn check_range(start: u32, end: u32) {
     let mut i: u64 = start.into();
     let end: u64 = end.into();
     while i <= end {
-        let v = i as u32;
+        let v: u32 = i.try_into().unwrap();
 
         s.clear();
         write!(&mut s, "{:X}", v).unwrap();

@@ -1,3 +1,5 @@
+#![allow(clippy::uninlined_format_args, clippy::missing_panics_doc)]
+
 use proc_macro::{Ident, Span, TokenStream, TokenTree};
 
 #[proc_macro_derive(HasTypeId)]
@@ -39,7 +41,9 @@ pub fn derive_has_type_id_trait(items: TokenStream) -> TokenStream {
     };
 
     let template = r#"
+        #[allow(unsafe_code)]
         const _: () = {
+            #[automatically_derived]
             unsafe impl ::short_type_id::HasTypeId for $$$$$ {
                 const TYPE_ID: ::short_type_id::TypeId = {
                     const CRATE_VERSION: &::core::primitive::str = match ::core::option_env!("CARGO_PKG_VERSION") {
@@ -81,10 +85,10 @@ pub fn derive_has_type_id_trait(items: TokenStream) -> TokenStream {
     "#;
 
     let str_type_name = type_name.to_string();
-    let generated = template.replace("$$$$$", &str_type_name).replace(
-        "$#$#$",
-        str_type_name.strip_prefix("r#").unwrap_or(&str_type_name),
-    );
+    let without_prefix = str_type_name.strip_prefix("r#").unwrap_or(&str_type_name);
+    let generated = template
+        .replace("$$$$$", &str_type_name)
+        .replace("$#$#$", without_prefix);
     let span = type_name.span();
     generated
         .parse::<TokenStream>()

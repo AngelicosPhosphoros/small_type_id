@@ -1,3 +1,5 @@
+#![cfg_attr(miri, allow(unused_imports))]
+
 use std::collections::HashSet;
 
 use short_type_id::{HasTypeId, TypeId};
@@ -53,6 +55,8 @@ fn types_in_modules_differ() {
 }
 
 #[test]
+// MIRI unsupported until https://github.com/rust-lang/miri/issues/450 fixed
+#[cfg(not(miri))]
 fn iter_types() {
     let all_type_ids: Vec<TypeId> = short_type_id::iter_registered_entries()
         .map(|x| x.type_id)

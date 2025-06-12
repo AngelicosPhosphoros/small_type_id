@@ -21,6 +21,7 @@ impl HexView {
         }
     }
 
+    #[allow(clippy::items_after_statements)]
     pub(crate) const fn new(val: u32) -> HexView {
         let len: u32 = if val == 0 {
             1
@@ -57,6 +58,7 @@ impl HexView {
 }
 
 #[cfg(test)]
+#[allow(clippy::wildcard_imports)]
 mod tests {
     use super::*;
 
@@ -66,6 +68,7 @@ mod tests {
         assert_eq!(HexView::new(u32::MAX).as_str(), "FFFFFFFF");
         assert_eq!(HexView::new(u32::MAX).as_str(), format!("{:X}", u32::MAX));
         assert_eq!(HexView::new(0x0F0F0F0F).as_str(), "F0F0F0F");
+        assert_eq!(HexView::new(0xF0F0F0F0).as_str(), "F0F0F0F0");
         assert_eq!(HexView::new(0xA).as_str(), "A");
         assert_eq!(HexView::new(0xAB).as_str(), "AB");
         assert_eq!(HexView::new(0xABC).as_str(), "ABC");

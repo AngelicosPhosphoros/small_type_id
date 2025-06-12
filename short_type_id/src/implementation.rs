@@ -8,6 +8,7 @@ use crate::{TypeId, hex};
 // Functions and types used in macro generated code.
 #[doc(hidden)]
 pub mod private {
+    #[allow(clippy::wildcard_imports)]
     use super::*;
 
     pub use ctor::declarative::ctor;
@@ -275,6 +276,7 @@ fn handle_duplicate_typeid(
 }
 
 #[cfg(test)]
+#[allow(clippy::wildcard_imports)]
 mod tests {
     use super::*;
 
