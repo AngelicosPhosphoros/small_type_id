@@ -5,6 +5,9 @@ edition = "2024"
 authors = ["Angelicos Phosphoros (Timur Khuzin) <angelicos.phosphoros@protonmail.com>"]
 description = "Crate for generation constant 32 bit nonzero unique identifiers for types."
 keywords = ["typeid", "no_std", "const"]
+repository = "https://github.com/AngelicosPhosphoros/short_type_id"
+license = "MIT OR Apache-2.0"
+rust-version = "1.87"
 
 [features]
 debug_type_name = []
