@@ -87,7 +87,7 @@ jobs:
     # No need to run on others because code it crossplatform
     runs-on: ubuntu-latest
     env:
-      RUSTFLAGS: "-Zsanitizer=address"
+      RUSTFLAGS: '-Zsanitizer=address'
     steps:
       - uses: actions/checkout@v4
       - run: rustup override set nightly
