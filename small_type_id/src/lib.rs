@@ -8,7 +8,7 @@ mod hex;
 mod implementation;
 
 pub use implementation::private;
-pub use small_type_id_derive::HasTypeId;
+pub use small_type_id_proc_macro::HasTypeId;
 
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]

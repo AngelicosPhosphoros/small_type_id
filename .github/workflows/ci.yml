@@ -101,7 +101,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Derive crate
-        working-directory: small_type_id_derive
+        working-directory: small_type_id_proc_macro
         run: cargo publish --dry-run
       # - name: Main crate
       #   working-directory: small_type_id

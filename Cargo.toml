@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "small_type_id",
-    "small_type_id_derive",
+    "small_type_id_proc_macro",
 
     "benches",
     "extra_tests",

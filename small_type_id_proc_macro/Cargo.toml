@@ -1,5 +1,5 @@
 [package]
-name = "small_type_id_derive"
+name = "small_type_id_proc_macro"
 version = "0.1.0"
 edition = "2024"
 authors = ["Angelicos Phosphoros (Timur Khuzin) <angelicos.phosphoros@protonmail.com>"]
