@@ -1,11 +1,11 @@
 #![allow(clippy::uninlined_format_args, clippy::missing_panics_doc)]
 
-//! This crate implements derive `proc_macro` for crate `short_type_id`.
-//! It is intended to be used through `short_type_id::HasTypeId` reexport.
+//! This crate implements derive `proc_macro` for crate `small_type_id`.
+//! It is intended to be used through `small_type_id::HasTypeId` reexport.
 
 use proc_macro::{Ident, Span, TokenStream, TokenTree};
 
-/// Implements [`short_type_id::HasTypeId`](trait.HasTypeId.html) trait and registers implementation for runtime verification.
+/// Implements [`small_type_id::HasTypeId`](trait.HasTypeId.html) trait and registers implementation for runtime verification.
 #[proc_macro_derive(HasTypeId)]
 pub fn derive_has_type_id_trait(items: TokenStream) -> TokenStream {
     let type_name: Ident = 'type_name: {
@@ -48,39 +48,39 @@ pub fn derive_has_type_id_trait(items: TokenStream) -> TokenStream {
         #[allow(unsafe_code)]
         const _: () = {
             #[automatically_derived]
-            unsafe impl ::short_type_id::HasTypeId for $$$$$ {
-                const TYPE_ID: ::short_type_id::TypeId = {
+            unsafe impl ::small_type_id::HasTypeId for $$$$$ {
+                const TYPE_ID: ::small_type_id::TypeId = {
                     const CRATE_VERSION: &::core::primitive::str = match ::core::option_env!("CARGO_PKG_VERSION") {
                         ::core::option::Option::Some(x) => x,
                         ::core::option::Option::None => "",
                     };
                     if CRATE_VERSION.is_empty() {
-                        ::short_type_id::private::compute_id(
+                        ::small_type_id::private::compute_id(
                             ::core::concat!(::core::module_path!(), "::", "$#$#$").as_bytes()
                         )
                     } else {
                         const SUM_LEN: usize =
                             ::core::concat!(::core::module_path!(), "::", "$#$#$", "::").len() + CRATE_VERSION.len();
-                        let concatenated: [u8; SUM_LEN] = ::short_type_id::private::concat_bytes(
+                        let concatenated: [u8; SUM_LEN] = ::small_type_id::private::concat_bytes(
                             ::core::concat!(::core::module_path!(), "::", "$#$#$", "::").as_bytes(),
                             CRATE_VERSION.as_bytes(),
                         );
-                        ::short_type_id::private::compute_id(&concatenated)
+                        ::small_type_id::private::compute_id(&concatenated)
                     }
                 };
             }
 
-            static ENTRY_0KKVMQVJV2BRIOQ8EILZ7: ::short_type_id::private::TypeEntry = ::short_type_id::private::TypeEntry::new(
+            static ENTRY_0KKVMQVJV2BRIOQ8EILZ7: ::small_type_id::private::TypeEntry = ::small_type_id::private::TypeEntry::new(
                 ::core::concat!(::core::module_path!(), "::", "$#$#$"),
-                <$$$$$ as ::short_type_id::HasTypeId>::TYPE_ID,
+                <$$$$$ as ::small_type_id::HasTypeId>::TYPE_ID,
             );
 
-            ::short_type_id::private::ctor!{
+            ::small_type_id::private::ctor!{
                 #[ctor]
                 #[inline]
                 unsafe fn register_0kkvmqvjv2brioq8eilz7() {
                     unsafe {
-                        ::short_type_id::private::register_type(&ENTRY_0KKVMQVJV2BRIOQ8EILZ7);
+                        ::small_type_id::private::register_type(&ENTRY_0KKVMQVJV2BRIOQ8EILZ7);
                     }
                 }
             }

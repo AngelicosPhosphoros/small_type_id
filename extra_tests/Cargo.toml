@@ -5,11 +5,11 @@ edition = "2024"
 publish = false
 
 [dependencies]
-short_type_id = { path = "../short_type_id" }
+small_type_id = { path = "../small_type_id" }
 
 [features]
-unsafe_remove_duplicate_checks = ["short_type_id/unsafe_remove_duplicate_checks"]
-debug_type_name =  ["short_type_id/debug_type_name"]
+unsafe_remove_duplicate_checks = ["small_type_id/unsafe_remove_duplicate_checks"]
+debug_type_name =  ["small_type_id/debug_type_name"]
 
 [[bin]]
 name = "duplicate_type_ids_handling"

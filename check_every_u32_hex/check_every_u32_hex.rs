@@ -7,7 +7,7 @@ use core::sync::atomic::Ordering::Relaxed;
 use std::thread;
 use std::time::Instant;
 
-#[path = "../short_type_id/src/hex.rs"]
+#[path = "../small_type_id/src/hex.rs"]
 mod hex;
 
 fn main() {

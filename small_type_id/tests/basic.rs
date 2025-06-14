@@ -2,33 +2,33 @@
 
 use std::collections::HashSet;
 
-use short_type_id::{HasTypeId, TypeId};
+use small_type_id::{HasTypeId, TypeId};
 
-#[derive(short_type_id::HasTypeId)]
+#[derive(small_type_id::HasTypeId)]
 struct MyType(#[allow(unused)] u32);
 
-#[derive(short_type_id::HasTypeId)]
+#[derive(small_type_id::HasTypeId)]
 enum EnumType {
     _A,
     _B,
     _C(u32),
 }
 
-#[derive(short_type_id::HasTypeId)]
+#[derive(small_type_id::HasTypeId)]
 union UnionType {
     _f: f32,
     _u: usize,
 }
 
 mod some_module {
-    #[derive(short_type_id::HasTypeId)]
+    #[derive(small_type_id::HasTypeId)]
     pub struct MyType(#[allow(unused)] u32);
 }
 
-#[derive(short_type_id::HasTypeId)]
+#[derive(small_type_id::HasTypeId)]
 struct r#CheckRawKeyword;
 
-#[derive(short_type_id::HasTypeId)]
+#[derive(small_type_id::HasTypeId)]
 #[allow(non_camel_case_types)]
 struct r#pub;
 
@@ -58,7 +58,7 @@ fn types_in_modules_differ() {
 // MIRI unsupported until https://github.com/rust-lang/miri/issues/450 fixed
 #[cfg(not(miri))]
 fn iter_types() {
-    let all_type_ids: Vec<TypeId> = short_type_id::iter_registered_entries()
+    let all_type_ids: Vec<TypeId> = small_type_id::iter_registered_entries()
         .map(|x| x.type_id)
         .collect();
     assert_eq!(all_type_ids.len(), 6);
@@ -76,7 +76,7 @@ fn iter_types() {
         .collect()
     };
     assert_eq!(set, etalon);
-    let second_iteration: Vec<TypeId> = short_type_id::iter_registered_entries()
+    let second_iteration: Vec<TypeId> = small_type_id::iter_registered_entries()
         .map(|x| x.type_id)
         .collect();
     assert_eq!(all_type_ids, second_iteration);
@@ -100,7 +100,7 @@ fn test_id_to_name() {
         ]
         .into_iter()
         .collect();
-    for entry in short_type_id::iter_registered_entries() {
+    for entry in small_type_id::iter_registered_entries() {
         assert_eq!(entry.type_name, key_to_name[&entry.type_id]);
     }
 }

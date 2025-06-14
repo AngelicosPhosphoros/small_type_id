@@ -5,7 +5,7 @@ use criterion::BatchSize::LargeInput;
 use criterion::Criterion;
 
 #[allow(unused_imports)]
-#[path = "../short_type_id/src/hex.rs"]
+#[path = "../small_type_id/src/hex.rs"]
 mod hex;
 
 const NUMS_TO_TEST: &[u32] = &[0, 0xFF, 0x1234, 0x1234ABCD];

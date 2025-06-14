@@ -238,7 +238,7 @@ fn handle_duplicate_typeid(
             );
         };
 
-        eprint_str("short_type_id: Found duplicate type_id ");
+        eprint_str("small_type_id: Found duplicate type_id ");
         eprint_str(hex_val.as_str());
         #[cfg(not(feature = "debug_type_name"))]
         {
@@ -316,12 +316,12 @@ mod tests {
     #[test]
     fn check_constants() {
         assert_eq!(
-            murmur_v3(b"short_type_id::implementation::tests::MyType", MURMUR_SEED),
+            murmur_v3(b"small_type_id::implementation::tests::MyType", MURMUR_SEED),
             0x6FFDD6CA
         );
         assert_eq!(
             murmur_v3(
-                b"short_type_id::implementation::tests::MyType::0.1.1",
+                b"small_type_id::implementation::tests::MyType::0.1.1",
                 MURMUR_SEED
             ),
             0x611E8FFD
