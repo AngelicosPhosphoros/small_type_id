@@ -96,4 +96,13 @@ jobs:
         run: cargo build -Zbuild-std --release --bin check_every_u32_hex
       - name: Test formatting of every possible u32
         run: ./target/release/check_every_u32_hex
-
+  publish-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Derive crate
+        working-directory: small_type_id_derive
+        run: cargo publish --dry-run
+      # - name: Main crate
+      #   working-directory: small_type_id
+      #   run: cargo publish --dry-run
