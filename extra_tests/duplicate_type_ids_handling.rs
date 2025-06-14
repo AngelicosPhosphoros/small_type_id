@@ -1,4 +1,4 @@
-#![allow(non_camel_case_types)]
+#![allow(non_camel_case_types, clippy::uninlined_format_args)]
 // We don't want to register this executable
 // because it correctly abnormally exits before starting main
 // which used to collect tests.
@@ -6,21 +6,21 @@
 
 use std::collections::HashSet;
 
-use short_type_id::HasTypeId;
+use small_type_id::HasTypeId;
 
-#[derive(short_type_id::HasTypeId)]
-pub struct uaaaaa58 {
+#[derive(small_type_id::HasTypeId)]
+pub struct XaaG {
     pub f: u32,
 }
 
-#[derive(short_type_id::HasTypeId)]
-pub enum iaaaac3b {
+#[derive(small_type_id::HasTypeId)]
+pub enum Jaaadtd {
     A,
     B,
 }
 
 const _: () = {
-    assert!(iaaaac3b::TYPE_ID.as_u32() == uaaaaa58::TYPE_ID.as_u32());
+    assert!(XaaG::TYPE_ID.as_u32() == Jaaadtd::TYPE_ID.as_u32());
 };
 
 fn main() {
@@ -28,7 +28,7 @@ fn main() {
     let mut tested = 0;
     #[cfg(feature = "debug_type_name")]
     let mut names = Vec::new();
-    for entry in short_type_id::iter_registered_entries() {
+    for entry in small_type_id::iter_registered_entries() {
         if !set.insert(entry.type_id) {
             eprintln!(
                 "Detected error at the start of main! Found duplicate type_id {}.",

@@ -1,1 +1,1 @@
-short_type_id: Found duplicate type_id 36851844 for types duplicate_type_ids_handling::uaaaaa58 and duplicate_type_ids_handling::iaaaac3b.
+small_type_id: Found duplicate type_id 28357B83 for types duplicate_type_ids_handling::XaaG and duplicate_type_ids_handling::Jaaadtd.

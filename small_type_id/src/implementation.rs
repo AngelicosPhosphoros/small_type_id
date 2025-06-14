@@ -3,6 +3,8 @@ use core::ptr;
 use core::sync::atomic::AtomicPtr;
 use core::sync::atomic::Ordering::{AcqRel, Acquire, Relaxed};
 
+use xxhash_rust::const_xxh32::xxh32;
+
 use crate::TypeId;
 #[cfg(not(feature = "unsafe_remove_duplicate_checks"))]
 use crate::hex;
@@ -76,7 +78,7 @@ pub mod private {
 
     #[must_use]
     pub const fn compute_id(module_name_version: &[u8]) -> TypeId {
-        let hash = murmur_v3(module_name_version, MURMUR_SEED);
+        let hash = xxh32(module_name_version, 0);
         let val = if hash == 0 { 1 } else { hash } & 0x7FFF_FFFF_u32;
         TypeId(NonZeroU32::new(val).unwrap())
     }
@@ -98,7 +100,6 @@ pub mod private {
     }
 }
 
-const MURMUR_SEED: u32 = 0xF1D4_B28B;
 static LAST_ADDED_TYPE: AtomicPtr<private::TypeEntry> = AtomicPtr::new(ptr::null_mut());
 
 pub(crate) fn iter_registered_entries() -> impl Iterator<Item = crate::TypeEntry> {
@@ -115,58 +116,6 @@ pub(crate) fn iter_registered_entries() -> impl Iterator<Item = crate::TypeEntry
             None
         }
     })
-}
-
-#[must_use]
-const fn murmur_v3(src: &[u8], seed: u32) -> u32 {
-    let mut h: u32 = seed;
-    let mut i = 0;
-    while i + 4 <= src.len() {
-        // Read next 4 byte number as little endian.
-        let mut k: u32 = 0;
-        let mut j = 0;
-        while j < 4 {
-            k |= (src[i] as u32) << (8 * j);
-            i += 1;
-            j += 1;
-        }
-
-        h ^= murmur_32_scramble(k);
-        h = h.rotate_left(13);
-        h = h.wrapping_mul(5).wrapping_add(0xE654_6B64);
-    }
-    if i < src.len() {
-        // Read next bytes as little endian number until end.
-        let mut k: u32 = 0;
-        let mut j = 0;
-        while i < src.len() {
-            k |= (src[i] as u32) << (8 * j);
-            i += 1;
-            j += 1;
-        }
-
-        h ^= murmur_32_scramble(k);
-    }
-
-    assert!(src.len() <= u32::MAX as usize);
-    #[allow(clippy::cast_possible_truncation)]
-    let len = src.len() as u32;
-
-    h ^= len;
-    h ^= h >> 16;
-    h = u32::wrapping_mul(h, 0x85eb_ca6b);
-    h ^= h >> 13;
-    h = u32::wrapping_mul(h, 0xc2b2_ae35);
-    h ^= h >> 16;
-
-    h
-}
-
-#[must_use]
-const fn murmur_32_scramble(k: u32) -> u32 {
-    k.wrapping_mul(0xcc9e_2d51)
-        .rotate_left(15)
-        .wrapping_mul(0x1b87_3593)
 }
 
 #[cfg(all(not(feature = "unsafe_remove_duplicate_checks"), unix))]
@@ -316,49 +265,24 @@ mod tests {
     #[test]
     fn check_constants() {
         assert_eq!(
-            murmur_v3(b"small_type_id::implementation::tests::MyType", MURMUR_SEED),
-            0x6FFDD6CA
+            xxh32(b"small_type_id::implementation::tests::MyType", 0),
+            0xF8DF6782
         );
         assert_eq!(
-            murmur_v3(
-                b"small_type_id::implementation::tests::MyType::0.1.1",
-                MURMUR_SEED
-            ),
-            0x611E8FFD
+            xxh32(b"small_type_id::implementation::tests::MyType::0.1.1", 0),
+            0x3C3D45A6
         );
-        assert_eq!(MY_HASH.as_u32(), 0x6FFDD6CA);
-        assert_eq!(MY_HASH_AND_CRATE.as_u32(), 0x611E8FFD);
-        assert_eq!(MY_HASH_AND_NO_CRATE.as_u32(), 0x6FFDD6CA);
+        assert_eq!(MY_HASH.as_u32(), 0x78DF6782);
+        assert_eq!(MY_HASH_AND_CRATE.as_u32(), 0x3C3D45A6);
+        assert_eq!(MY_HASH_AND_NO_CRATE.as_u32(), 0x78DF6782);
     }
 
     #[test]
-    fn murmur() {
-        assert_eq!(murmur_v3("test".as_bytes(), 0), 0xba6bd213);
-        assert_eq!(murmur_v3("test".as_bytes(), 0x9747b28c), 0x704b81dc);
-        assert_eq!(murmur_v3("Hello, world!".as_bytes(), 0), 0xc0363e43);
-        assert_eq!(
-            murmur_v3("Hello, world!".as_bytes(), 0x9747b28c),
-            0x24884cba
-        );
-        assert_eq!(
-            murmur_v3("The quick brown fox jumps over the lazy dog".as_bytes(), 0),
-            0x2e4ff723
-        );
-        assert_eq!(
-            murmur_v3(
-                "The quick brown fox jumps over the lazy dog".as_bytes(),
-                0x9747b28c
-            ),
-            0x2fa826cd
-        );
-        assert_eq!(
-            murmur_v3(b"assaulted", MURMUR_SEED),
-            murmur_v3(b"nonescape", MURMUR_SEED)
-        );
+    fn test_xxh32() {
         // Same as test in extra_tests/duplicate_type_ids_handling
         assert_eq!(
-            murmur_v3(b"duplicate_type_ids_handling::uaaaaa58::0.0.0", MURMUR_SEED),
-            murmur_v3(b"duplicate_type_ids_handling::iaaaac3b::0.0.0", MURMUR_SEED),
+            xxh32(b"duplicate_type_ids_handling::XaaG::0.0.0", 0),
+            xxh32(b"duplicate_type_ids_handling::Jaaadtd::0.0.0", 0),
         )
     }
 
@@ -369,20 +293,24 @@ mod tests {
         let _my_hash = MY_HASH;
 
         // This would be used for testing duplicate lookup in types.
-        assert_eq!(compute_id(b"assaulted"), compute_id(b"nonescape"));
-        assert_eq!(compute_id(b"assaulted").as_u32(), 0x3BD11B2D);
+        assert_eq!(compute_id(b"hogtied"), compute_id(b"scouriness"));
+        assert_eq!(compute_id(b"hogtied").as_u32(), 0x5034ABE3);
 
-        assert_eq!(compute_id(b"usize").as_u32(), 0x3CAC743E);
+        assert_eq!(compute_id(b"usize").as_u32(), 0x7847CC2E);
 
         // Check that we do not generate zeros.
-        assert_eq!(murmur_v3(b"sascmxrw", MURMUR_SEED), 0);
-        assert_ne!(compute_id(b"sascmxrw").as_u32(), 0);
-        assert_eq!(compute_id(b"sascmxrw").as_u32(), 1);
+        assert_eq!(xxh32(b"AasZkWq", 0), 0);
+        assert_eq!(xxh32(b"RalEB24", 0), 0);
+        assert_ne!(compute_id(b"AasZkWq").as_u32(), 0);
+        assert_ne!(compute_id(b"RalEB24").as_u32(), 0);
+        assert_eq!(compute_id(b"AasZkWq").as_u32(), 1);
+        assert_eq!(compute_id(b"RalEB24").as_u32(), 1);
 
         assert_eq!(u32::MAX >> 31, 1);
         assert_eq!(compute_id(b"assaulted").as_u32() >> 31, 0);
         assert_eq!(compute_id(b"usize").as_u32() >> 31, 0);
-        assert_eq!(compute_id(b"sascmxrw").as_u32() >> 31, 0);
+        assert_eq!(compute_id(b"AasZkWq").as_u32() >> 31, 0);
+        assert_eq!(compute_id(b"RalEB24").as_u32() >> 31, 0);
     }
 
     #[test]

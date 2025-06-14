@@ -1,2 +1,2 @@
 Tested 2 entries, found 1 types
-Got names: duplicate_type_ids_handling::iaaaac3b, duplicate_type_ids_handling::uaaaaa58
+Got names: duplicate_type_ids_handling::Jaaadtd, duplicate_type_ids_handling::XaaG

@@ -17,3 +17,4 @@ default = []
 [dependencies]
 ctor = { version = "0.4.2", default-features = false }
 small_type_id_derive = { path = "../small_type_id_derive", "version" = "0.1.0" }
+xxhash-rust = { version = "0.8.15", default-features = false, features = ["const_xxh32"] }
