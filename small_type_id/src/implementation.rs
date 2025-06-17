@@ -118,42 +118,6 @@ pub(crate) fn iter_registered_entries() -> impl Iterator<Item = crate::TypeEntry
     })
 }
 
-#[cfg(all(not(feature = "unsafe_remove_duplicate_checks"), unix))]
-mod unix {
-    #[repr(C)]
-    pub(super) struct File(core::ffi::c_void);
-    pub(super) const STDERR_FILENO: i32 = 2;
-}
-#[cfg(all(not(feature = "unsafe_remove_duplicate_checks"), unix))]
-unsafe extern "C" {
-    fn fdopen(fd: i32, mode: *const u8) -> *mut unix::File;
-    fn fwrite(buffer: *const u8, elem_size: usize, len: usize, file: *mut unix::File) -> usize;
-    fn fflush(file: *mut unix::File) -> i32;
-    fn abort() -> !;
-}
-
-#[cfg(all(not(feature = "unsafe_remove_duplicate_checks"), windows))]
-mod win {
-    pub(super) type Handle = u32;
-    pub(super) const STD_ERROR_HANDLE: Handle = 0xFFFF_FFF4;
-    pub(super) const PROCESS_TERMINATE_ACCESS: u32 = 1;
-}
-#[cfg(all(not(feature = "unsafe_remove_duplicate_checks"), windows))]
-#[link(name = "Kernel32", kind = "dylib")]
-unsafe extern "system" {
-    fn GetStdHandle(handle: win::Handle) -> win::Handle;
-    fn WriteFile(
-        file_handle: win::Handle,
-        buffer: *const u8,
-        len: u32,
-        bytes_written: *mut u32,
-        overlapping: *mut (),
-    ) -> i32;
-    fn GetCurrentProcessId() -> u32;
-    fn OpenProcess(desired_acces: u32, inherit_handle: i32, process_id: u32) -> win::Handle;
-    fn TerminateProcess(handle: win::Handle, exit_code: u32) -> i32;
-}
-
 #[cfg(not(feature = "unsafe_remove_duplicate_checks"))]
 #[cold]
 #[inline(never)]
@@ -162,64 +126,37 @@ fn handle_duplicate_typeid(
     #[cfg(feature = "debug_type_name")] type_name1: &str,
     #[cfg(feature = "debug_type_name")] type_name2: &str,
 ) -> ! {
+    #[cfg_attr(windows, path = "win.rs")]
+    #[cfg_attr(unix, path = "unix.rs")]
+    mod platform;
+
     let hex_val = hex::HexView::new(type_id.as_u32());
     // Safety: well, we just call libc or WinAPI functions.
     // This code runs before main so we cannot run code from stdlib so we can't really synchronize access to stderr.
     // It probably the only running thread in application.
     // Anyway, this function ends by terminates current process so any memory unsafety would end here.
     unsafe {
-        #[cfg(unix)]
-        let stderr: *mut unix::File = fdopen(unix::STDERR_FILENO, c"a".as_ptr().cast());
-        #[cfg(windows)]
-        let stderr: win::Handle = GetStdHandle(win::STD_ERROR_HANDLE);
-        #[cfg(unix)]
-        let eprint_str = |s: &str| {
-            fwrite(s.as_ptr(), 1, s.len(), stderr);
-        };
-        #[cfg(windows)]
-        let eprint_str = |s: &str| {
-            WriteFile(
-                stderr,
-                s.as_ptr(),
-                s.len().try_into().unwrap(),
-                ptr::null_mut(),
-                ptr::null_mut(),
-            );
-        };
+        let mut stderr = platform::get_stderr();
 
-        eprint_str("small_type_id: Found duplicate type_id ");
-        eprint_str(hex_val.as_str());
+        platform::print_error(&mut stderr, "small_type_id: Found duplicate type_id ");
+        platform::print_error(&mut stderr, hex_val.as_str());
         #[cfg(not(feature = "debug_type_name"))]
         {
-            eprint_str(
+            platform::print_error(
+                &mut stderr,
                 r#". Consider enabling "debug_type_name" feature to display conflicting type names"#,
             );
         }
         #[cfg(feature = "debug_type_name")]
         {
-            eprint_str(" for types ");
-            eprint_str(type_name1);
-            eprint_str(" and ");
-            eprint_str(type_name2);
+            platform::print_error(&mut stderr, " for types ");
+            platform::print_error(&mut stderr, type_name1);
+            platform::print_error(&mut stderr, " and ");
+            platform::print_error(&mut stderr, type_name2);
         }
-        eprint_str(".\n");
+        platform::print_error(&mut stderr, ".\n");
 
-        #[cfg(unix)]
-        {
-            fflush(stderr);
-            abort()
-        }
-        #[cfg(windows)]
-        {
-            let current_process_id = GetCurrentProcessId();
-            let current_process_handle = OpenProcess(
-                win::PROCESS_TERMINATE_ACCESS,
-                false.into(),
-                current_process_id,
-            );
-            TerminateProcess(current_process_handle, 2);
-            unreachable!()
-        }
+        platform::terminate_current_process(stderr)
     }
 }
 

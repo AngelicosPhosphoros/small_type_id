@@ -264,7 +264,7 @@ impl core::fmt::Display for ErrorFromZeroBytes {
 impl core::error::Error for ErrorFromZeroBytes {}
 
 #[cfg(doctest)]
-#[doc = include_str!("../../Readme.md")]
+#[doc = include_str!("../../ReadMe.md")]
 pub struct ReadmeDoctests;
 
 /// ```compile_fail
