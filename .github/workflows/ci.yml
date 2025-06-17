@@ -10,6 +10,18 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  check-fmt:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    steps:
+      - name: Disable autocrlf on Windows
+        # This interferes with stdout/stderr etalon files.
+        run: git config --global core.autocrlf false
+        if: ${{ matrix.os == 'windows-latest' }}
+      - uses: actions/checkout@v4
+      - run: cargo fmt --check
   run-clippy:
     runs-on: ${{ matrix.os }}
     strategy:
