@@ -7,9 +7,11 @@ description = "Crate for generation constant 32 bit nonzero unique identifiers f
 keywords = ["typeid", "no_std", "const"]
 repository = "https://github.com/AngelicosPhosphoros/small_type_id"
 license = "MIT OR Apache-2.0"
+readme = "../../ReadMe.md"
 rust-version = "1.87"
 
 [features]
+# See crate core documentation page for help.
 debug_type_name = []
 unsafe_remove_duplicate_checks = []
 default = []
