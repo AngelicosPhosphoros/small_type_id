@@ -25,35 +25,30 @@ pub(crate) struct StdErr(Handle);
 /// # Safety
 /// Must be called only once.
 /// While returned value in use, no other thread should access stderr.
-pub(crate) unsafe fn get_stderr()->StdErr {
-    StdErr(unsafe {
-        GetStdHandle(STD_ERROR_HANDLE)
-    })
+pub(crate) unsafe fn get_stderr() -> StdErr {
+    StdErr(unsafe { GetStdHandle(STD_ERROR_HANDLE) })
 }
 
 pub(crate) fn print_error(stderr: &mut StdErr, msg: &str) {
     // SAFETY: Caller correctly acquired stderr so no problem.
     unsafe {
-            WriteFile(
-                stderr.0,
-                msg.as_ptr(),
-                msg.len().try_into().unwrap(),
-                ptr::null_mut(),
-                ptr::null_mut(),
-            );
-        }
+        WriteFile(
+            stderr.0,
+            msg.as_ptr(),
+            msg.len().try_into().unwrap(),
+            ptr::null_mut(),
+            ptr::null_mut(),
+        );
+    }
 }
 
-pub(crate) fn terminate_current_process(_: StdErr)->! {
+pub(crate) fn terminate_current_process(_: StdErr) -> ! {
     // SAFETY: Caller correctly acquired stderr so no problem.
     unsafe {
-                    let current_process_id = GetCurrentProcessId();
-            let current_process_handle = OpenProcess(
-                PROCESS_TERMINATE_ACCESS,
-                false.into(),
-                current_process_id,
-            );
-            TerminateProcess(current_process_handle, 2);
-            unreachable!()
+        let current_process_id = GetCurrentProcessId();
+        let current_process_handle =
+            OpenProcess(PROCESS_TERMINATE_ACCESS, false.into(), current_process_id);
+        TerminateProcess(current_process_handle, 2);
+        unreachable!()
     }
 }
