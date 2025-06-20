@@ -44,58 +44,16 @@ pub fn derive_has_type_id_trait(items: TokenStream) -> TokenStream {
         unreachable!("Invalid rust syntax for user type declaration")
     };
 
-    let template = r#"
-        #[allow(unsafe_code)]
-        const _: () = {
-            #[automatically_derived]
-            unsafe impl ::small_type_id::HasTypeId for $$$$$ {
-                const TYPE_ID: ::small_type_id::TypeId = {
-                    const CRATE_VERSION: &::core::primitive::str = match ::core::option_env!("CARGO_PKG_VERSION") {
-                        ::core::option::Option::Some(x) => x,
-                        ::core::option::Option::None => "",
-                    };
-                    if CRATE_VERSION.is_empty() {
-                        ::small_type_id::private::compute_id(
-                            ::core::concat!(::core::module_path!(), "::", "$#$#$").as_bytes()
-                        )
-                    } else {
-                        const SUM_LEN: usize =
-                            ::core::concat!(::core::module_path!(), "::", "$#$#$", "::").len() + CRATE_VERSION.len();
-                        let concatenated: [u8; SUM_LEN] = ::small_type_id::private::concat_bytes(
-                            ::core::concat!(::core::module_path!(), "::", "$#$#$", "::").as_bytes(),
-                            CRATE_VERSION.as_bytes(),
-                        );
-                        ::small_type_id::private::compute_id(&concatenated)
-                    }
-                };
-            }
+    let name_str = type_name.to_string();
+    let text = format!(
+        "::small_type_id::private::implement_type_and_register!({}, \"{}\");",
+        name_str,
+        name_str.strip_prefix("r#").unwrap_or(&name_str),
+    );
 
-            static ENTRY_0KKVMQVJV2BRIOQ8EILZ7: ::small_type_id::private::TypeEntry = ::small_type_id::private::TypeEntry::new(
-                ::core::concat!(::core::module_path!(), "::", "$#$#$"),
-                <$$$$$ as ::small_type_id::HasTypeId>::TYPE_ID,
-            );
-
-            ::small_type_id::private::ctor!{
-                #[ctor]
-                #[inline]
-                unsafe fn register_0kkvmqvjv2brioq8eilz7() {
-                    unsafe {
-                        ::small_type_id::private::register_type(&ENTRY_0KKVMQVJV2BRIOQ8EILZ7);
-                    }
-                }
-            }
-            ()
-        };
-    "#;
-
-    let str_type_name = type_name.to_string();
-    let without_prefix = str_type_name.strip_prefix("r#").unwrap_or(&str_type_name);
-    let generated = template
-        .replace("$$$$$", &str_type_name)
-        .replace("$#$#$", without_prefix);
     let span = type_name.span();
-    generated
-        .parse::<TokenStream>()
+
+    text.parse::<TokenStream>()
         .unwrap()
         .into_iter()
         .map(|mut t| {

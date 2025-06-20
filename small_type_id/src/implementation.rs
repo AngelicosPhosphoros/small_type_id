@@ -91,13 +91,25 @@ pub mod private {
     /// [1]: https://doc.rust-lang.org/std/macro.env.html
     /// [2]: https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
     #[must_use]
-    pub const fn concat_bytes<const SUM_LEN: usize>(s0: &[u8], s1: &[u8]) -> [u8; SUM_LEN] {
+    pub const fn concat_bytes<const SUM_LEN: usize>(parts: &[&[u8]]) -> [u8; SUM_LEN] {
         let mut res = [0; SUM_LEN];
-        let (a, b) = res.split_at_mut(s0.len());
-        a.copy_from_slice(s0);
-        b.copy_from_slice(s1);
+        let mut chunk: &mut [u8] = &mut res;
+        let mut i = 0;
+        while i < parts.len() {
+            let p = parts[i];
+            i += 1;
+
+            let (dst, rest) = chunk.split_at_mut(p.len());
+            dst.copy_from_slice(p);
+            chunk = rest;
+        }
+        assert!(chunk.is_empty());
         res
     }
+
+    pub use crate::private_macro_implement_type_and_register as implement_type_and_register;
+    pub use crate::private_macro_implement_type_id as implement_type_id;
+    pub use crate::private_macro_register_type_id as register_type_id;
 }
 
 static LAST_ADDED_TYPE: AtomicPtr<private::TypeEntry> = AtomicPtr::new(ptr::null_mut());
@@ -175,11 +187,12 @@ mod tests {
             private::compute_id(concat!(module_path!(), "::", "MyType").as_bytes())
         } else {
             const SUM_LEN: usize =
-                concat!(module_path!(), "::", "MyType", "::").len() + CRATE_VERSION.len();
-            let concatenated: [u8; SUM_LEN] = private::concat_bytes(
-                concat!(module_path!(), "::", "MyType", "::").as_bytes(),
+                concat!(module_path!(), "::", "MyType").len() + 2 + CRATE_VERSION.len();
+            let concatenated: [u8; SUM_LEN] = private::concat_bytes(&[
+                concat!(module_path!(), "::", "MyType").as_bytes(),
+                b"::",
                 CRATE_VERSION.as_bytes(),
-            );
+            ]);
             private::compute_id(&concatenated)
         }
     };
@@ -190,11 +203,12 @@ mod tests {
             private::compute_id(concat!(module_path!(), "::", "MyType").as_bytes())
         } else {
             const SUM_LEN: usize =
-                concat!(module_path!(), "::", "MyType", "::").len() + CRATE_VERSION.len();
-            let concatenated: [u8; SUM_LEN] = private::concat_bytes(
-                concat!(module_path!(), "::", "MyType", "::").as_bytes(),
+                concat!(module_path!(), "::", "MyType").len() + 2 + CRATE_VERSION.len();
+            let concatenated: [u8; SUM_LEN] = private::concat_bytes(&[
+                concat!(module_path!(), "::", "MyType").as_bytes(),
+                b"::",
                 CRATE_VERSION.as_bytes(),
-            );
+            ]);
             private::compute_id(&concatenated)
         }
     };
@@ -252,23 +266,23 @@ mod tests {
 
     #[test]
     fn test_concat_strs() {
-        let hello_world = const { private::concat_bytes::<12>(b"Hello ", b"world!") };
+        let hello_world = const { private::concat_bytes::<12>(&[b"Hello ", b"world!"]) };
         assert_eq!(hello_world, *b"Hello world!");
-        let world = const { private::concat_bytes::<6>(b"", b"world!") };
+        let world = const { private::concat_bytes::<6>(&[b"", b"world!"]) };
         assert_eq!(world, *b"world!");
-        let hello = const { private::concat_bytes::<6>(b"Hello ", b"") };
+        let hello = const { private::concat_bytes::<6>(&[b"Hello ", b""]) };
         assert_eq!(hello, *b"Hello ");
     }
 
     #[test]
     #[should_panic]
     fn too_short_not_ok() {
-        let _ = private::concat_bytes::<11>(b"Hello ", b"world!");
+        let _ = private::concat_bytes::<11>(&[b"Hello ", b"world!"]);
     }
 
     #[test]
     #[should_panic]
     fn too_large_not_ok() {
-        let _ = private::concat_bytes::<13>(b"Hello ", b"world!");
+        let _ = private::concat_bytes::<13>(&[b"Hello ", b"world!"]);
     }
 }

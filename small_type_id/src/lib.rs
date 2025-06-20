@@ -123,6 +123,7 @@ use core::num::NonZeroU32;
 
 mod hex;
 mod implementation;
+mod macros;
 
 pub use implementation::private;
 
