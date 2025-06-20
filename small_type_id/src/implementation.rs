@@ -76,35 +76,39 @@ pub mod private {
         }
     }
 
+    /// Use [`compute_input_len`] to compute `TOTAL_INPUT_LEN`.
     #[must_use]
-    pub const fn compute_id(module_name_version: &[u8]) -> TypeId {
-        let hash = xxh32(module_name_version, 0);
+    pub const fn compute_id<const TOTAL_INPUT_LEN: usize>(
+        module_and_name: &str,
+        crate_version: Option<&str>,
+    ) -> TypeId {
+        let hash = if let Some(crate_version) = crate_version {
+            let mut concatenated = [0; TOTAL_INPUT_LEN];
+            // Need to use split_at_mut because slice[x..y] syntax doesn't work in const fns.
+            let (head, tail) = concatenated.split_at_mut(module_and_name.len());
+            let (delim, version) = tail.split_at_mut(2);
+
+            head.copy_from_slice(module_and_name.as_bytes());
+            delim.copy_from_slice(b"::");
+            version.copy_from_slice(crate_version.as_bytes());
+
+            xxh32(&concatenated, 0)
+        } else {
+            assert!(TOTAL_INPUT_LEN == module_and_name.len());
+            xxh32(module_and_name.as_bytes(), 0)
+        };
+
         let val = if hash == 0 { 1 } else { hash } & 0x7FFF_FFFF_u32;
         TypeId(NonZeroU32::new(val).unwrap())
     }
 
-    /// Useful for concatenating byte slices in compile time.
-    /// This exists solely to be able to compile Rust code without cargo
-    /// which prevents us fron getting current package version using [env!()][1] macro
-    /// with [CARGO_PKG_VERSION][2] environment variable.
-    ///
-    /// [1]: https://doc.rust-lang.org/std/macro.env.html
-    /// [2]: https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
     #[must_use]
-    pub const fn concat_bytes<const SUM_LEN: usize>(parts: &[&[u8]]) -> [u8; SUM_LEN] {
-        let mut res = [0; SUM_LEN];
-        let mut chunk: &mut [u8] = &mut res;
-        let mut i = 0;
-        while i < parts.len() {
-            let p = parts[i];
-            i += 1;
-
-            let (dst, rest) = chunk.split_at_mut(p.len());
-            dst.copy_from_slice(p);
-            chunk = rest;
-        }
-        assert!(chunk.is_empty());
-        res
+    pub const fn compute_input_len(module_and_name: &str, crate_version: Option<&str>) -> usize {
+        module_and_name.len()
+            + match crate_version {
+                Some(v) => 2 + v.len(),
+                None => 0,
+            }
     }
 
     pub use crate::private_macro_implement_type_and_register as implement_type_and_register;
@@ -179,38 +183,16 @@ mod tests {
 
     // This checks that we can compute const TypeId in compile time.
     #[allow(unused)]
-    const MY_HASH: TypeId = private::compute_id(concat!(module_path!(), "::", "MyType").as_bytes());
-    #[allow(unused)]
     const MY_HASH_AND_CRATE: TypeId = {
-        const CRATE_VERSION: &str = if let Some(x) = Some("0.1.1") { x } else { "" };
-        if CRATE_VERSION.is_empty() {
-            private::compute_id(concat!(module_path!(), "::", "MyType").as_bytes())
-        } else {
-            const SUM_LEN: usize =
-                concat!(module_path!(), "::", "MyType").len() + 2 + CRATE_VERSION.len();
-            let concatenated: [u8; SUM_LEN] = private::concat_bytes(&[
-                concat!(module_path!(), "::", "MyType").as_bytes(),
-                b"::",
-                CRATE_VERSION.as_bytes(),
-            ]);
-            private::compute_id(&concatenated)
-        }
+        const INPUT_LEN: usize =
+            private::compute_input_len(concat!(module_path!(), "::", "MyType"), Some("0.1.1"));
+        private::compute_id::<INPUT_LEN>(concat!(module_path!(), "::", "MyType"), Some("0.1.1"))
     };
     #[allow(unused)]
     const MY_HASH_AND_NO_CRATE: TypeId = {
-        const CRATE_VERSION: &str = if let Some(x) = None { x } else { "" };
-        if CRATE_VERSION.is_empty() {
-            private::compute_id(concat!(module_path!(), "::", "MyType").as_bytes())
-        } else {
-            const SUM_LEN: usize =
-                concat!(module_path!(), "::", "MyType").len() + 2 + CRATE_VERSION.len();
-            let concatenated: [u8; SUM_LEN] = private::concat_bytes(&[
-                concat!(module_path!(), "::", "MyType").as_bytes(),
-                b"::",
-                CRATE_VERSION.as_bytes(),
-            ]);
-            private::compute_id(&concatenated)
-        }
+        const INPUT_LEN: usize =
+            private::compute_input_len(concat!(module_path!(), "::", "MyType"), None);
+        private::compute_id::<INPUT_LEN>(concat!(module_path!(), "::", "MyType"), None)
     };
 
     #[test]
@@ -223,7 +205,6 @@ mod tests {
             xxh32(b"small_type_id::implementation::tests::MyType::0.1.1", 0),
             0x3C3D45A6
         );
-        assert_eq!(MY_HASH.as_u32(), 0x78DF6782);
         assert_eq!(MY_HASH_AND_CRATE.as_u32(), 0x3C3D45A6);
         assert_eq!(MY_HASH_AND_NO_CRATE.as_u32(), 0x78DF6782);
     }
@@ -241,48 +222,52 @@ mod tests {
     fn compute_id() {
         use private::compute_id;
 
-        let _my_hash = MY_HASH;
-
         // This would be used for testing duplicate lookup in types.
-        assert_eq!(compute_id(b"hogtied"), compute_id(b"scouriness"));
-        assert_eq!(compute_id(b"hogtied").as_u32(), 0x5034ABE3);
+        assert_eq!(
+            compute_id::<7>("hogtied", None),
+            compute_id::<10>("scouriness", None)
+        );
+        assert_eq!(compute_id::<7>("hogtied", None).as_u32(), 0x5034ABE3);
 
-        assert_eq!(compute_id(b"usize").as_u32(), 0x7847CC2E);
+        assert_eq!(compute_id::<5>("usize", None).as_u32(), 0x7847CC2E);
+        assert_eq!(compute_id::<12>("usize", Some("0.0.0")).as_u32(), 0x3064D6AA);
+        assert_eq!(compute_id::<12>("usize", Some("0.0.1")).as_u32(), 0x791B53F2);
 
         // Check that we do not generate zeros.
         assert_eq!(xxh32(b"AasZkWq", 0), 0);
         assert_eq!(xxh32(b"RalEB24", 0), 0);
-        assert_ne!(compute_id(b"AasZkWq").as_u32(), 0);
-        assert_ne!(compute_id(b"RalEB24").as_u32(), 0);
-        assert_eq!(compute_id(b"AasZkWq").as_u32(), 1);
-        assert_eq!(compute_id(b"RalEB24").as_u32(), 1);
+        assert_ne!(compute_id::<7>("AasZkWq", None).as_u32(), 0);
+        assert_ne!(compute_id::<7>("RalEB24", None).as_u32(), 0);
+        assert_eq!(compute_id::<7>("AasZkWq", None).as_u32(), 1);
+        assert_eq!(compute_id::<7>("RalEB24", None).as_u32(), 1);
 
         assert_eq!(u32::MAX >> 31, 1);
-        assert_eq!(compute_id(b"assaulted").as_u32() >> 31, 0);
-        assert_eq!(compute_id(b"usize").as_u32() >> 31, 0);
-        assert_eq!(compute_id(b"AasZkWq").as_u32() >> 31, 0);
-        assert_eq!(compute_id(b"RalEB24").as_u32() >> 31, 0);
-    }
-
-    #[test]
-    fn test_concat_strs() {
-        let hello_world = const { private::concat_bytes::<12>(&[b"Hello ", b"world!"]) };
-        assert_eq!(hello_world, *b"Hello world!");
-        let world = const { private::concat_bytes::<6>(&[b"", b"world!"]) };
-        assert_eq!(world, *b"world!");
-        let hello = const { private::concat_bytes::<6>(&[b"Hello ", b""]) };
-        assert_eq!(hello, *b"Hello ");
+        assert_eq!(compute_id::<9>("assaulted", None).as_u32() >> 31, 0);
+        assert_eq!(compute_id::<5>("usize", None).as_u32() >> 31, 0);
+        assert_eq!(compute_id::<7>("AasZkWq", None).as_u32() >> 31, 0);
+        assert_eq!(compute_id::<7>("RalEB24", None).as_u32() >> 31, 0);
     }
 
     #[test]
     #[should_panic]
-    fn too_short_not_ok() {
-        let _ = private::concat_bytes::<11>(&[b"Hello ", b"world!"]);
+    fn compute_id_invalid_len_none() {
+        use private::compute_id;
+        let _ = compute_id::<6>("hogtied", None);
     }
 
     #[test]
     #[should_panic]
-    fn too_large_not_ok() {
-        let _ = private::concat_bytes::<13>(&[b"Hello ", b"world!"]);
+    fn compute_id_invalid_len_some() {
+        use private::compute_id;
+        let _ = compute_id::<7>("hogtied", Some("a.b.c"));
+    }
+
+    #[test]
+    fn compute_input_len() {
+        use private::compute_input_len;
+        assert_eq!(compute_input_len("", None), 0);
+        assert_eq!(compute_input_len("Hello", None), 5);
+        assert_eq!(compute_input_len("", Some("xxx")), 5);
+        assert_eq!(compute_input_len("Hello", Some("0.1.2")), 12);
     }
 }
