@@ -1,3 +1,4 @@
+# THIS IS ALPHA RELEASE PLEASE DO NOT USE
 # Small Type Id
 
 This crate provides trait `HasTypeId` with associated constant `TYPE_ID` and derive macro to implement it for your types.

@@ -1,6 +1,6 @@
 [package]
 name = "small_type_id_proc_macro"
-version = "0.1.0"
+version = "0.0.1-alpha"
 edition = "2024"
 authors = ["Angelicos Phosphoros (Timur Khuzin) <angelicos.phosphoros@protonmail.com>"]
 description = "Crate for generation constant 32 bit nonzero unique identifiers for types."

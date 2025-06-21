@@ -1,3 +1,4 @@
+//! # THIS IS ALPHA RELEASE PLEASE DO NOT USE
 //! This crate provides 3 things:
 //!
 //! 1. [`TypeId`] type that is used to identify type.

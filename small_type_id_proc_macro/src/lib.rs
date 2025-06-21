@@ -1,5 +1,6 @@
 #![allow(clippy::uninlined_format_args, clippy::missing_panics_doc)]
 
+//! # THIS IS ALPHA RELEASE PLEASE DO NOT USE
 //! This crate implements derive `proc_macro` for crate `small_type_id`.
 //! It is intended to be used through `small_type_id::HasTypeId` reexport.
 

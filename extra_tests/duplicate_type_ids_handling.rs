@@ -42,8 +42,6 @@ fn main() {
     println!("Tested {} entries, found {} types", tested, set.len());
     #[cfg(feature = "debug_type_name")]
     {
-        use std::println;
-
         names.sort_unstable();
         let joined = names.join(", ");
         println!("Got names: {}", joined);
