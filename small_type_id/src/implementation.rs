@@ -230,8 +230,14 @@ mod tests {
         assert_eq!(compute_id::<7>("hogtied", None).as_u32(), 0x5034ABE3);
 
         assert_eq!(compute_id::<5>("usize", None).as_u32(), 0x7847CC2E);
-        assert_eq!(compute_id::<12>("usize", Some("0.0.0")).as_u32(), 0x3064D6AA);
-        assert_eq!(compute_id::<12>("usize", Some("0.0.1")).as_u32(), 0x791B53F2);
+        assert_eq!(
+            compute_id::<12>("usize", Some("0.0.0")).as_u32(),
+            0x3064D6AA
+        );
+        assert_eq!(
+            compute_id::<12>("usize", Some("0.0.1")).as_u32(),
+            0x791B53F2
+        );
 
         // Check that we do not generate zeros.
         assert_eq!(xxh32(b"AasZkWq", 0), 0);
