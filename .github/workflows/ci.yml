@@ -117,6 +117,7 @@ jobs:
       - name: Derive crate
         working-directory: small_type_id_proc_macro
         run: cargo publish --dry-run
-      # - name: Main crate
-      #   working-directory: small_type_id
-      #   run: cargo publish --dry-run
+      - name: Main crate
+        continue-on-error: true
+        working-directory: small_type_id
+        run: cargo publish --dry-run
