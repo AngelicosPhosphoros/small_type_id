@@ -34,7 +34,7 @@
 //! struct VecWithInts(/* wrapped generic type*/ Vec<i32>);
 //! ```
 //!
-//! ### How uniqueness of TypeIds are enforced
+//! ### How uniqueness of `TypeIds` are enforced
 //!
 //! Uniqueness
 //!
@@ -187,7 +187,7 @@ pub struct TypeEntry {
 }
 
 pub fn iter_registered_entries() -> impl Iterator<Item = TypeEntry> {
-    implementation::iter_registered_entries()
+    implementation::pub_iter_registered_types()
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -224,7 +224,7 @@ impl TypeId {
     }
 
     #[inline]
-    pub const fn from_bytes(bytes: [u8; 4]) -> Result<Self, ErrorFromZeroBytes> {
+    pub const unsafe fn from_bytes(bytes: [u8; 4]) -> Result<Self, ErrorFromZeroBytes> {
         let val = u32::from_le_bytes(bytes);
         if let Some(x) = NonZeroU32::new(val) {
             Ok(Self(x))

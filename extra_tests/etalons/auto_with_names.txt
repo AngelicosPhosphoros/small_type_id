@@ -1,1 +1,1 @@
-small_type_id: Found duplicate type_id 28357B83 for types duplicate_type_ids_handling::XaaG and duplicate_type_ids_handling::Jaaadtd.
+small_type_id: Found duplicate type_id 28357B83 for types duplicate_type_ids_handling::Jaaadtd and duplicate_type_ids_handling::XaaG.
