@@ -1,44 +1,88 @@
-import argparse
+import dataclasses
 import os
+import shutil
 import subprocess
+import time
+
+@dataclasses.dataclass(frozen=True, kw_only=True)
+class TestSet:
+    features: frozenset[str]
+    ret_code: int
+    stdout: str
+    stderr: str
+
+def run_test(params: TestSet, is_release: bool, lto: str):
+    build_args = "cargo build --verbose --workspace --exclude benches"
+    if params.features:
+        build_args += f" --features={','.join(params.features)}"
+    if is_release:
+        build_args += f" --release"
+
+    if params.stdout:
+        out = open(params.stdout, "rb").read()
+    else:
+        out = b""
+
+    if params.stderr:
+        err = open(params.stderr, "rb").read()
+    else:
+        err = b""
+
+    workspace_cargo = "../Cargo.toml"
+    if lto:
+        shutil.copy2(workspace_cargo, workspace_cargo + ".orig")
+        with open(workspace_cargo, "a") as f:
+            f.write(f'\n[profile.release]\nlto = "{lto}"\n')
+    try:
+        if lto:
+            print(f'Running with lto="{lto}"')
+        else:
+            print("Running without lto")
+        print(f"    > {build_args}")
+        subprocess.run(build_args.split(), check=True)
+        if is_release:
+            executable = "../target/release/duplicate_type_ids_handling"
+        else:
+            executable = "../target/debug/duplicate_type_ids_handling"
+        run_res = subprocess.run(executable, capture_output=True)
+        assert run_res.returncode == params.ret_code, f"Return code doesn't match: {run_res.returncode} != {params.ret_code}"
+        assert run_res.stdout == out, f"stdout doesn't match: {repr(out)} != {repr(params.stdout)}"
+        assert run_res.stderr == err, f"stderr doesn't match: {repr(err)} != {repr(params.stderr)}"
+    finally:
+        if lto:
+            shutil.move(workspace_cargo + ".orig", workspace_cargo)
+
+def set_current_dir():
+    abspath = os.path.abspath(__file__)
+    dname = os.path.dirname(abspath)
+    os.chdir(dname)
 
 if __name__ != "__main__":
     raise Exception("Please, just execute script")
 
-parser = argparse.ArgumentParser(
-    prog="python cmp_output.py",
-    description="Compares program output against expected values",
+start_time = time.time()
+
+if os.name == "nt":
+    error_code = 2
+else:
+    # SIGABRT
+    error_code = -6
+fs = frozenset
+set_current_dir()
+tests = (
+    TestSet(features=fs(), ret_code=error_code, stdout="", stderr="etalons/auto_no_names.txt"),
+    TestSet(features=fs({"debug_type_name"}), ret_code=error_code,
+        stdout="", stderr="etalons/auto_with_names.txt"),
+    TestSet(features=fs({"unsafe_remove_duplicate_checks"}), ret_code=0,
+        stdout="etalons/m_stdout_no_names.txt", stderr="etalons/m_stderr.txt"),
+    TestSet(features=fs({"unsafe_remove_duplicate_checks", "debug_type_name"}),
+        ret_code=0, stdout="etalons/m_stdout_with_names.txt", stderr="etalons/m_stderr.txt"),
 )
 
-parser.add_argument("executable")
-parser.add_argument("--exp_code", required=True, type=int)
-parser.add_argument("--exp_stdout", required=False)
-parser.add_argument("--exp_stderr", required=False)
+for t in tests:
+    run_test(t, False, "")
+    for lto in ["off", "thin", "fat"]:
+        run_test(t, True, lto)
 
-args = parser.parse_args()
-
-if os.name == "nt" or args.exp_code == 0:
-    ret_code = args.exp_code
-else:
-    # We terminate process using signals on Unix
-    # so use -SIGABRT instead.
-    ret_code = -6
-
-if args.exp_stdout:
-    expected_stdout = open(args.exp_stdout, "rb").read()
-else:
-    expected_stdout = b""
-
-if args.exp_stderr:
-    expected_stderr = open(args.exp_stderr, "rb").read()
-else:
-    expected_stderr = b""
-
-run_res = subprocess.run(
-    args.executable,
-    capture_output=True
-)
-
-assert run_res.returncode == ret_code, f"Return code doesn't match: {run_res.returncode} != {ret_code}"
-assert run_res.stdout == expected_stdout, f"stdout doesn't match: {repr(run_res.stdout)} != {repr(expected_stdout)}"
-assert run_res.stderr == expected_stderr, f"stderr doesn't match: {repr(run_res.stderr)} != {repr(expected_stderr)}"
+end_time = time.time()
+print(f"Running tests took {end_time - start_time:.3} seconds")

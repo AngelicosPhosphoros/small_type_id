@@ -51,6 +51,10 @@ jobs:
         # This interferes with stdout/stderr etalon files.
         run: git config --global core.autocrlf false
         if: ${{ matrix.os == 'windows-latest' }}
+      - name: Update Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
       - uses: actions/checkout@v4
       - name: Select Rust version
         run: rustup override set ${{ matrix.rust }}
@@ -67,24 +71,7 @@ jobs:
       - name: Run tests
         run: cargo test --verbose --workspace --exclude benches --features=debug_type_name,unsafe_remove_duplicate_checks
       - name: Autodetect tests
-        run: echo "Staring autodetect tests"
-      - run: cargo build --verbose --workspace --bin duplicate_type_ids_handling
-      - run: python extra_tests/cmp_output.py --exp_code 2 --exp_stderr extra_tests/etalons/auto_no_names.txt target/debug/duplicate_type_ids_handling
-      - run: cargo build --verbose --workspace --bin duplicate_type_ids_handling --features=unsafe_remove_duplicate_checks
-      - run: python extra_tests/cmp_output.py --exp_code 0 
-          --exp_stderr extra_tests/etalons/m_stderr.txt 
-          --exp_stdout extra_tests/etalons/m_stdout_no_names.txt 
-          target/debug/duplicate_type_ids_handling
-      - run: cargo build --verbose --workspace --bin duplicate_type_ids_handling --features=debug_type_name
-      - run: python extra_tests/cmp_output.py --exp_code 2 
-          --exp_stderr extra_tests/etalons/auto_with_names.txt 
-          target/debug/duplicate_type_ids_handling
-      - run: cargo build --verbose --workspace --bin duplicate_type_ids_handling
-             --features=debug_type_name,unsafe_remove_duplicate_checks
-      - run: python extra_tests/cmp_output.py --exp_code 0 
-          --exp_stderr extra_tests/etalons/m_stderr.txt 
-          --exp_stdout extra_tests/etalons/m_stdout_with_names.txt 
-          target/debug/duplicate_type_ids_handling
+        run: python extra_tests/cmp_output.py
   miri-checks:
     # No need to run on others because platform specific unsafe is not really testable
     runs-on: ubuntu-latest
