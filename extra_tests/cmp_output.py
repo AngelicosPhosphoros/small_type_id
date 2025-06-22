@@ -1,3 +1,4 @@
+import argparse
 import dataclasses
 import os
 import shutil
@@ -11,12 +12,16 @@ class TestSet:
     stdout: str
     stderr: str
 
-def run_test(params: TestSet, is_release: bool, lto: str):
-    build_args = "cargo build --verbose --workspace --exclude benches"
+def run_test(params: TestSet, is_release: bool, lto: str, use_asan: bool):
+    build_args = "cargo build --verbose --workspace --exclude benches --bin duplicate_type_ids_handling"
+    env = None
     if params.features:
         build_args += f" --features={','.join(params.features)}"
     if is_release:
         build_args += f" --release"
+    if use_asan:
+        build_args += " -Zbuild-std"
+        env = { **os.environ, "RUSTFLAGS" : "-Zsanitizer=address" }
 
     if params.stdout:
         out = open(params.stdout, "rb").read()
@@ -39,7 +44,8 @@ def run_test(params: TestSet, is_release: bool, lto: str):
         else:
             print("Running without lto")
         print(f"    > {build_args}")
-        subprocess.run(build_args.split(), check=True)
+        print(build_args.split())
+        subprocess.run(build_args.split(), check=True, env=env)
         if is_release:
             executable = "../target/release/duplicate_type_ids_handling"
         else:
@@ -79,10 +85,14 @@ tests = (
         ret_code=0, stdout="etalons/m_stdout_with_names.txt", stderr="etalons/m_stderr.txt"),
 )
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--use-asan", action='store_true')
+args = parser.parse_args()
+
 for t in tests:
-    run_test(t, False, "")
+    run_test(t, False, "", args.use_asan)
     for lto in ["off", "thin", "fat"]:
-        run_test(t, True, lto)
+        run_test(t, True, lto, args.use_asan)
 
 end_time = time.time()
 print(f"Running tests took {end_time - start_time:.3} seconds")
