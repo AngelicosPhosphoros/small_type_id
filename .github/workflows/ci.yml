@@ -47,6 +47,8 @@ jobs:
           - nightly
           - 1.87.0  # MSRV
     steps:
+      - run: Get-Command clang ; Get-ChildItem 'C:\Program Files/LLVM\lib\clang\'
+        if: ${{ matrix.os == 'windows-latest' }}
       - name: Disable autocrlf on Windows
         # This interferes with stdout/stderr etalon files.
         run: git config --global core.autocrlf false
