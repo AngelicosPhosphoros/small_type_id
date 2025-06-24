@@ -77,6 +77,10 @@ jobs:
         run: cargo test --verbose --workspace --exclude benches --features=debug_type_name,unsafe_remove_duplicate_checks
       - name: Autodetect tests
         run: python extra_tests/cmp_output.py
+        if: ${{ matrix.rust != 'nightly' || matrix.os != 'windows-latest' }}
+      - name: Autodetect tests with Address-Sanitizer
+        run: python extra_tests/cmp_output.py --use-asan
+        if: ${{ matrix.rust == 'nightly' && matrix.os == 'windows-latest' }}
       #   if: ${{ matrix.rust != 'nightly' || matrix.os == 'windows-latest' }}
       # - name: Autodetect tests
       #   run: python extra_tests/cmp_output.py --use-asan
