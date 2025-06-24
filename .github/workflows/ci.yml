@@ -40,15 +40,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [windows-latest, ubuntu-latest, macos-latest]
         rust:
           - stable
           - beta
           - nightly
           - 1.87.0  # MSRV
     steps:
-      - run: Get-Command clang ; Get-ChildItem 'C:\Program Files/LLVM\lib\clang\'
-        if: ${{ matrix.os == 'windows-latest' }}
       - name: Disable autocrlf on Windows
         # This interferes with stdout/stderr etalon files.
         run: git config --global core.autocrlf false
@@ -63,6 +61,9 @@ jobs:
       - name: Install rust-src on nightly
         run: rustup component add rust-src
         if: ${{ matrix.rust == 'nightly' }}
+      - name: Install llvm-tools on nightly
+        run: rustup component add llvm-tools
+        if: ${{ matrix.rust == 'nightly' && matrix.os == 'macos-latest' }}
       - name: Pin dependency versions
         run: cargo +nightly -Z minimal-versions generate-lockfile
       - name: Build
@@ -81,22 +82,22 @@ jobs:
       - name: UI tests with Address-Sanitizer
         run: python extra_tests/cmp_output.py --use-asan
         if: ${{ matrix.rust == 'nightly' && matrix.os != 'macos-latest' }}
-      #   if: ${{ matrix.rust != 'nightly' || matrix.os == 'windows-latest' }}
-      # - name: Autodetect tests
-      #   run: python extra_tests/cmp_output.py --use-asan
-      #   continue-on-error: true
-      #   if: ${{ matrix.rust == 'nightly' && matrix.os != 'windows-latest' }}
-      # - run: cargo build --verbose --workspace --exclude benches --bin duplicate_type_ids_handling -Zbuild-std --target=x86_64-unknown-linux-gnu
-      #   if: ${{ matrix.rust == 'nightly' && matrix.os == 'ubuntu-latest' }}
-      #   continue-on-error: true
-      #   env:
-      #     RUSTFLAGS: '-Zsanitizer=address'
-      # - run: cargo build --verbose --workspace --exclude benches --bin duplicate_type_ids_handling -Zbuild-std
-      #   if: ${{ matrix.rust == 'nightly' && matrix.os == 'macos-latest' }}
-      #   continue-on-error: true
-      #   env:
-      #     RUSTFLAGS: '-Zsanitizer=address'
-      #     DYLD_INSERT_LIBRARIES: '/Users/runner/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/lib/librustc-nightly_rt.asan.dylib'
+  test-musl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare podman image
+        run: buildah build -f ./.github/musl_dockerfile --tag musl_rust
+      - name: Rust tests
+        run: podman run -t -w /small_type_id musl_rust cargo test --verbose --workspace --exclude benches
+      - name: Run tests
+        run: podman run -t -w /small_type_id musl_rust cargo test --verbose --workspace --exclude benches --features=debug_type_name
+      - name: Run tests
+        run: podman run -t -w /small_type_id musl_rust cargo test --verbose --workspace --exclude benches --features=unsafe_remove_duplicate_checks
+      - name: Run tests
+        run: podman run -t -w /small_type_id musl_rust cargo test --verbose --workspace --exclude benches --features=debug_type_name,unsafe_remove_duplicate_checks
+      - name: UI tests
+        run: podman run -t -w /small_type_id/extra_tests musl_rust python cmp_output.py
   miri-checks:
     # No need to run on others because platform specific unsafe is not really testable
     runs-on: ubuntu-latest

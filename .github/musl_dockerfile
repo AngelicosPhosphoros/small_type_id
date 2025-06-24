@@ -1,0 +1,4 @@
+FROM docker.io/library/rust:1.87-alpine3.22
+COPY . /small_type_id/
+RUN apk add --update --no-cache python3 musl-dev
+CMD ["sh"]
