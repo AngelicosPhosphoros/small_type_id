@@ -98,6 +98,29 @@ jobs:
         run: podman run -t -w /small_type_id musl_rust cargo test --verbose --workspace --exclude benches --features=debug_type_name,unsafe_remove_duplicate_checks
       - name: UI tests
         run: podman run -t -w /small_type_id/extra_tests musl_rust python cmp_output.py
+  # This tests pure Rust libc implementation
+  test-eyra-libc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup override set nightly-2025-04-29
+      - run: |
+          cat <<EOF >build.rs
+          fn main(){ println!("cargo:rustc-link-arg=-nostartfiles"); }
+          EOF
+        working-directory: small_type_id
+      - run: echo "[dev-dependencies]" >> Cargo.toml
+        working-directory: small_type_id
+      - run: echo 'std = {version = "0.21.0", package = "eyra"}' >> Cargo.toml
+        working-directory: small_type_id
+      - run: cargo test --verbose --workspace --exclude benches
+        working-directory: small_type_id
+      - run: cargo test --verbose --workspace --exclude benches --features=debug_type_name
+        working-directory: small_type_id
+      - run: cargo test --verbose --workspace --exclude benches --features=unsafe_remove_duplicate_checks
+        working-directory: small_type_id
+      - run: cargo test --verbose --workspace --exclude benches --features=debug_type_name,unsafe_remove_duplicate_checks
+        working-directory: small_type_id
   miri-checks:
     # No need to run on others because platform specific unsafe is not really testable
     runs-on: ubuntu-latest
