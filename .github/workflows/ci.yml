@@ -69,13 +69,13 @@ jobs:
       - name: Build
         run: cargo build --verbose --workspace --exclude benches
       - name: Run tests
-        run: cargo test --verbose --workspace --exclude benches
+        run: cargo test --workspace --exclude benches
       - name: Run tests
-        run: cargo test --verbose --workspace --exclude benches --features=debug_type_name
+        run: cargo test --workspace --exclude benches --features=debug_type_name
       - name: Run tests
-        run: cargo test --verbose --workspace --exclude benches --features=unsafe_remove_duplicate_checks
+        run: cargo test --workspace --exclude benches --features=unsafe_remove_duplicate_checks
       - name: Run tests
-        run: cargo test --verbose --workspace --exclude benches --features=debug_type_name,unsafe_remove_duplicate_checks
+        run: cargo test --workspace --exclude benches --features=debug_type_name,unsafe_remove_duplicate_checks
       - name: UI tests
         run: python extra_tests/cmp_output.py
         if: ${{ matrix.rust != 'nightly' || matrix.os == 'macos-latest' }}
@@ -88,14 +88,16 @@ jobs:
       - uses: actions/checkout@v4
       - name: Prepare podman image
         run: buildah build -f ./.github/musl_dockerfile --tag musl_rust
-      - name: Rust tests
-        run: podman run -t -w /small_type_id musl_rust cargo test --verbose --workspace --exclude benches
+      - name: Run build.
+        run: podman run -t -w /small_type_id musl_rust cargo build --verbose --workspace --exclude benches
+      - name: Rus tests
+        run: podman run -t -w /small_type_id musl_rust cargo test --workspace --exclude benches
       - name: Run tests
-        run: podman run -t -w /small_type_id musl_rust cargo test --verbose --workspace --exclude benches --features=debug_type_name
+        run: podman run -t -w /small_type_id musl_rust cargo test --workspace --exclude benches --features=debug_type_name
       - name: Run tests
-        run: podman run -t -w /small_type_id musl_rust cargo test --verbose --workspace --exclude benches --features=unsafe_remove_duplicate_checks
+        run: podman run -t -w /small_type_id musl_rust cargo test --workspace --exclude benches --features=unsafe_remove_duplicate_checks
       - name: Run tests
-        run: podman run -t -w /small_type_id musl_rust cargo test --verbose --workspace --exclude benches --features=debug_type_name,unsafe_remove_duplicate_checks
+        run: podman run -t -w /small_type_id musl_rust cargo test --workspace --exclude benches --features=debug_type_name,unsafe_remove_duplicate_checks
       - name: UI tests
         run: podman run -t -w /small_type_id/extra_tests musl_rust python cmp_output.py
   # This tests pure Rust libc implementation
@@ -113,13 +115,13 @@ jobs:
         working-directory: small_type_id
       - run: echo 'std = {version = "0.21.0", package = "eyra"}' >> Cargo.toml
         working-directory: small_type_id
-      - run: cargo test --verbose --workspace --exclude benches
+      - run: cargo test
         working-directory: small_type_id
-      - run: cargo test --verbose --workspace --exclude benches --features=debug_type_name
+      - run: cargo test --features=debug_type_name
         working-directory: small_type_id
-      - run: cargo test --verbose --workspace --exclude benches --features=unsafe_remove_duplicate_checks
+      - run: cargo test --features=unsafe_remove_duplicate_checks
         working-directory: small_type_id
-      - run: cargo test --verbose --workspace --exclude benches --features=debug_type_name,unsafe_remove_duplicate_checks
+      - run: cargo test --features=debug_type_name,unsafe_remove_duplicate_checks
         working-directory: small_type_id
   miri-checks:
     # No need to run on others because platform specific unsafe is not really testable
