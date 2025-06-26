@@ -137,7 +137,7 @@ pub use implementation::private;
 /// struct FirstStruct;
 ///
 /// #[derive(small_type_id::HasTypeId)]
-/// struct SecondStruct;
+/// struct SecondStruct{}
 ///
 /// assert_ne!(FirstStruct::TYPE_ID, SecondStruct::TYPE_ID);
 /// ```
@@ -146,11 +146,11 @@ pub use implementation::private;
 /// ```
 /// # use small_type_id::HasTypeId as _;
 /// #[derive(small_type_id::HasTypeId)]
-/// struct Struct;
+/// struct Struct{}
 ///
 /// mod inner {
 ///     #[derive(small_type_id::HasTypeId)]
-///     pub struct Struct;
+///     pub struct Struct{}
 /// }
 ///
 /// assert_ne!(Struct::TYPE_ID, inner::Struct::TYPE_ID);

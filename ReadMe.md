@@ -14,6 +14,8 @@ There are 4 guarantees:
 
 Those guarantees would never be removed (even in semver breaking releases) so you can update dependency on this crate without validating your code that rely on them.
 
+Uniqueness of `TypeIds` is enforced by running code before `fn main()` using [`ctor`][5] crate.
+
 ## Comparison with [`std::any::TypeId`][4]
 
 With `std::any::TypeId` as at Rust 1.87.
@@ -75,3 +77,4 @@ More examples and implementation explanation are available in documentation.
 [2]: https://docs.rs/typeid/1.0.3/typeid/struct.ConstTypeId.html
 [3]: https://crates.io/crates/typeid
 [4]: https://doc.rust-lang.org/std/any/struct.TypeId.html
+[5]: https://crates.io/crates/ctor
