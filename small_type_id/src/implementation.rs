@@ -289,16 +289,17 @@ mod with_ctors_per_entry {
 }
 
 #[cfg(not(feature = "unsafe_remove_duplicate_checks"))]
+#[cfg_attr(windows, path = "win.rs")]
+#[cfg_attr(unix, path = "unix.rs")]
+mod platform;
+
+#[cfg(not(feature = "unsafe_remove_duplicate_checks"))]
 #[cold]
 #[inline(never)]
 fn handle_duplicate_typeid(
     type_id: TypeId,
     #[cfg(feature = "debug_type_name")] iter_types: impl Iterator<Item = &'static private::TypeEntry>,
 ) -> ! {
-    #[cfg_attr(windows, path = "win.rs")]
-    #[cfg_attr(unix, path = "unix.rs")]
-    mod platform;
-
     let hex_val = hex::HexView::new(type_id.as_u32());
 
     #[cfg(feature = "debug_type_name")]

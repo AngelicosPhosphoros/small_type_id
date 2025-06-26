@@ -31,19 +31,38 @@ pub(crate) unsafe fn get_stderr() -> StdErr {
 
 pub(crate) fn print_error(stderr: &mut StdErr, msg: &str) {
     // SAFETY: Caller correctly acquired stderr so no problem.
-    unsafe {
-        WriteFile(
-            stderr.0,
-            msg.as_ptr(),
-            msg.len().try_into().unwrap(),
-            ptr::null_mut(),
-            ptr::null_mut(),
-        );
+    let mut rest = msg.as_bytes();
+    while !rest.is_empty() {
+        const MIBS_16: usize = usize::pow(2, 24);
+        let bytes_to_write: u32 = rest.len().min(MIBS_16).try_into().unwrap();
+        // SAFETY: We follow WinAPI requirements.
+        let bytes_written = unsafe {
+            let mut written = 0;
+            let res = WriteFile(
+                stderr.0,
+                rest.as_ptr(),
+                bytes_to_write,
+                &mut written,
+                ptr::null_mut(),
+            );
+            if res == 0 {
+                // Well, we have an error.
+                // Since our error reporting is done for diagnostics
+                // and on best effort basis during terminating process,
+                // we just ignore errors.
+                return;
+            }
+            written
+        };
+        let bytes_written: usize = bytes_written.try_into().unwrap();
+        rest = &rest[bytes_written..];
     }
 }
 
 pub(crate) fn terminate_current_process(_: StdErr) -> ! {
     // SAFETY: Caller correctly acquired stderr so no problem.
+    // We use TerminateProcess instead of ExitProcess
+    // so no other code can corrupt any memory because it wouldn't be run.
     unsafe {
         let current_process_id = GetCurrentProcessId();
         let current_process_handle =
