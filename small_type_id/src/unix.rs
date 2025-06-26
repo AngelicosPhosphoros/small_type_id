@@ -28,7 +28,7 @@ pub(crate) unsafe fn get_stderr() -> StdErr {
     StdErr(())
 }
 
-pub(crate) fn print_error(stderr: &mut StdErr, msg: &str) {
+pub(crate) fn print_error(_stderr: &mut StdErr, msg: &str) {
     let mut rest = msg.as_bytes();
     while !rest.is_empty() {
         // SAFETY: We are trying to output diagnostic info on best effort basis.
@@ -55,6 +55,6 @@ pub(crate) fn print_error(stderr: &mut StdErr, msg: &str) {
     }
 }
 
-pub(crate) fn terminate_current_process(stderr: StdErr) -> ! {
+pub(crate) fn terminate_current_process(_stderr: StdErr) -> ! {
     abort()
 }
