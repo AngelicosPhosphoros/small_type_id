@@ -1,7 +1,7 @@
 use core::num::NonZeroU32;
-#[cfg(not(target_os = "windows"))]
+#[cfg(not(any(target_os = "windows", target_os = "linux")))]
 use core::ptr;
-#[cfg(not(target_os = "windows"))]
+#[cfg(not(any(target_os = "windows", target_os = "linux")))]
 use core::sync::atomic::AtomicPtr;
 
 use xxhash_rust::const_xxh32::xxh32;
@@ -23,7 +23,7 @@ pub mod private {
         pub(super) type_id: TypeId,
         #[cfg(feature = "debug_type_name")]
         pub(super) type_name: &'static str,
-        #[cfg(not(target_os = "windows"))]
+        #[cfg(not(any(target_os = "windows", target_os = "linux")))]
         pub(super) next: AtomicPtr<TypeEntry>,
     }
 
@@ -34,7 +34,7 @@ pub mod private {
 
             Self {
                 type_id,
-                #[cfg(not(target_os = "windows"))]
+                #[cfg(not(any(target_os = "windows", target_os = "linux")))]
                 next: AtomicPtr::new(ptr::null_mut()),
                 #[cfg(feature = "debug_type_name")]
                 type_name,
@@ -43,7 +43,7 @@ pub mod private {
     }
 
     #[cold]
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
     pub unsafe fn register_type(entry: &'static TypeEntry) {
         unsafe {
             with_ctors_per_entry::register_type(entry);
@@ -93,9 +93,9 @@ pub mod private {
 }
 
 pub(crate) fn pub_iter_registered_types() -> impl Iterator<Item = crate::TypeEntry> {
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
     let refs = with_ctors_per_entry::iter_registered_types();
-    #[cfg(target_os = "windows")]
+    #[cfg(any(target_os = "windows", target_os = "linux"))]
     let refs = with_link_section::iter_registered_types();
 
     refs.map(|e| crate::TypeEntry {
@@ -105,7 +105,7 @@ pub(crate) fn pub_iter_registered_types() -> impl Iterator<Item = crate::TypeEnt
     })
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", target_os = "linux"))]
 mod with_link_section {
     use core::hint::black_box;
     use core::mem::MaybeUninit;
@@ -133,6 +133,28 @@ mod with_link_section {
             // Use black_box to prevent provenance based code eliminations.
             let start_ptr = unsafe { black_box(START.as_ptr().add(1)) };
             let end_ptr = black_box(STOP.as_ptr());
+
+            (start_ptr, end_ptr)
+        };
+        #[cfg(target_os = "linux")]
+        let (start_ptr, end_ptr): (
+            *const MaybeUninit<private::TypeEntry>,
+            *const MaybeUninit<private::TypeEntry>,
+        ) = {
+            #[unsafe(link_section = private::link_section_name!())]
+            #[used]
+            static AVOID_REMOVAL: MaybeUninit<private::TypeEntry> = MaybeUninit::zeroed();
+            unsafe extern "Rust" {
+                #[link_name = concat!("__start_smltidrs_small_type_id_rs", private::small_type_id_version!())]
+                //#[link_name = concat!("__start_smltidrs_small_type_id_rs")]
+                static START: MaybeUninit<private::TypeEntry>;
+                #[link_name = concat!("__stop_smltidrs_small_type_id_rs", private::small_type_id_version!())]
+                //#[link_name = concat!("__stop_smltidrs_small_type_id_rs")]
+                static STOP: MaybeUninit<private::TypeEntry>;
+            }
+            // Use black_box to prevent provenance based code eliminations.
+            let start_ptr = black_box(&raw const START);
+            let end_ptr = black_box(&raw const STOP);
 
             (start_ptr, end_ptr)
         };
@@ -225,7 +247,7 @@ mod with_link_section {
     }
 }
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(not(any(target_os = "windows", target_os = "linux")))]
 mod with_ctors_per_entry {
     use core::sync::atomic::Ordering::{AcqRel, Acquire, Relaxed};
 

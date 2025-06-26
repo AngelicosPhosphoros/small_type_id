@@ -31,7 +31,7 @@ macro_rules! private_macro_implement_type_id {
 
 #[doc(hidden)]
 #[macro_export]
-#[cfg(not(windows))]
+#[cfg(not(any(target_os = "windows", target_os = "linux")))]
 macro_rules! private_macro_register_type_id {
     ($tname:ident, $name_literal:literal) => {
         static ENTRY: $crate::private::TypeEntry = $crate::private::TypeEntry::new(
@@ -53,7 +53,7 @@ macro_rules! private_macro_register_type_id {
 
 #[doc(hidden)]
 #[macro_export]
-#[cfg(windows)]
+#[cfg(any(target_os = "windows", target_os = "linux"))]
 macro_rules! private_macro_register_type_id {
     ($tname:ident, $name_literal:literal) => {
         #[unsafe(link_section=$crate::private::link_section_name!())]
@@ -72,12 +72,16 @@ macro_rules! private_macro_register_type_id {
 #[macro_export]
 macro_rules! private_macro_small_type_id_version {
     () => {
-        "0.0.1-alpha"
+        // Use underscores instead of dots because otherwise
+        // linker doesn't define `__start_<sectionname>` and `__stop_<sectionname>`
+        // variables.
+        "0_0_1_alpha"
     };
 }
 
 #[doc(hidden)]
 #[macro_export]
+#[cfg(target_os = "windows")]
 macro_rules! private_macro_link_section_name {
     () => {
         ::core::concat!(
@@ -88,13 +92,35 @@ macro_rules! private_macro_link_section_name {
     };
 }
 
+#[doc(hidden)]
+#[macro_export]
+#[cfg(target_os = "linux")]
+macro_rules! private_macro_link_section_name {
+    () => {
+        ::core::concat!(
+            "smltidrs_small_type_id_rs",
+            $crate::private::small_type_id_version!(),
+        )
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+#[cfg(not(any(target_os = "linux", target_os = "windows")))]
+macro_rules! private_macro_link_section_name {
+    () => {
+        ::core::compile_error!("Usage of link section is not supported on current platform (yet).")
+    };
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
     fn verify_version_macro() {
-        assert_eq!(
-            env!("CARGO_PKG_VERSION"),
-            crate::private::small_type_id_version!()
-        );
+        let made_linkable: String = env!("CARGO_PKG_VERSION")
+            .chars()
+            .map(|x| if x.is_alphanumeric() { x } else { '_' })
+            .collect();
+        assert_eq!(made_linkable, crate::private::small_type_id_version!());
     }
 }
