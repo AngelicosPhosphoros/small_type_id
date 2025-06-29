@@ -71,10 +71,11 @@ assert_ne!(Struct::TYPE_ID, Enum::TYPE_ID);
 const { assert!(Struct::TYPE_ID.as_u32() != Enum::TYPE_ID.as_u32()); };
 ```
 
-More examples and implementation explanation are available in documentation.
+More examples and implementation explanation are available in [documentation][6].
 
 [1]: https://doc.rust-lang.org/std/option/index.html#representation
 [2]: https://docs.rs/typeid/1.0.3/typeid/struct.ConstTypeId.html
 [3]: https://crates.io/crates/typeid
 [4]: https://doc.rust-lang.org/std/any/struct.TypeId.html
 [5]: https://crates.io/crates/ctor
+[6]: https://docs.rs/small_type_id/latest/small_type_id/
