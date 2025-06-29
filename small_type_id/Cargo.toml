@@ -10,6 +10,9 @@ license = "MIT OR Apache-2.0"
 readme = "../ReadMe.md"
 rust-version = "1.87"
 
+[package.metadata.docs.rs]
+features = ["debug_type_name"]
+
 [features]
 # See crate core documentation page for help.
 debug_type_name = []

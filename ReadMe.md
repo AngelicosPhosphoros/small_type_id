@@ -12,7 +12,7 @@ There are 4 guarantees:
    * Allows users to use this bit to distinguish with some other kind of id in a union (e.g. Runtime types from some scripting engine).
    * Does **not** allow niche optimizations on current version of Rust yet.
 
-Those guarantees would never be removed (even in semver breaking releases) so you can update dependency on this crate without validating your code that rely on them.
+Those guarantees would never be removed (even in semver breaking releases) so you can update dependency on this crate without validating your code that rely on that guarantees.
 
 Uniqueness of `TypeIds` is enforced by running code before `fn main()` using [`ctor`][5] crate.
 

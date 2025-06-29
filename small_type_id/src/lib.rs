@@ -13,20 +13,25 @@
 //! 4. Most significant bit (_MSB_) is guaranteed to be zero:
 //!    * Allows users to use this bit to distinguish with some other kind of id in a union (e.g. Runtime types from some scripting engine).
 //!
-//! Further guarantees can change with versions of this crate.
+//! The following guarantees are effective for current version but may change with major release:
 //!
-//! `TypeId` doesn't depends on contents of the type so it would remain same if it changes.
+//! 1. `TypeId` doesn't depend on layout of type. It is possible to change type from struct to
+//!    enum and it would have same `TypeId`.
+//! 2. `TypeId` doesn't change between recompilations.
+//! 3. `TypeId` doesn't depend on compilation target if the declaration
+//!    of the type doesn't move.
 //!
-//! `TypeId` can change on following changes:
-//!     * `small_type_id` crate version changes
-//!     * placement of the type changes (e.g. type moved into different module)
-//!     * compiler version changes
-//!     * version of a crate, where the type is declared, changes.
+//! `TypeId` can change on any of following changes:
+//!
+//!  * `small_type_id` crate version changes (including patch releases)
+//!  * placement of the type changes (e.g. type moved into different module)
+//!  * compiler version changes
+//!  * version of a crate, that declare the type, changes (including patch releases).
 //!
 //! ### Limitations
 //!
 //! Doesn't support non-static types and types with generic parameters.
-//! If you want to derive `HasTypeId` trait on such type, consider using [newtype][2] pattern.
+//! To derive `HasTypeId` trait on such type, consider using [newtype][2] pattern.
 //!
 //! ```
 //! # use small_type_id::HasTypeId as _;
@@ -34,10 +39,63 @@
 //! struct VecWithInts(/* wrapped generic type*/ Vec<i32>);
 //! ```
 //!
+//! It is possible that 2 types end up having same type id
+//! which would stop program from running.
+//! In such case, it is possible to adjust generated ids manually by using
+//! `#[small_type_id_seed=number]` attribute.
+//!
+//! ```
+//! # use small_type_id::HasTypeId as _;
+//! #[derive(small_type_id::HasTypeId)]
+//! struct Type1{}
+//! #[derive(small_type_id::HasTypeId)]
+//! #[small_type_id_seed=42]
+//! struct Type2{}
+//! assert_ne!(Type1::TYPE_ID, Type2::TYPE_ID);
+//! ```
+//!
 //! ### How uniqueness of `TypeIds` are enforced
 //!
-//! Uniqueness
+//! Using only 31 bit for [`TypeId`] makes it quite possible though unlikely
+//! so there is a necessity of validation of uniqueness of generated ids.
 //!
+//! All invocations of [`HasTypeId`](derive.HasTypeId.html) macro generate
+//! code that registers the type in big list of types that have [`TypeId`].
+//! Then, verification code is executed before `main`.
+//!
+//! Verification code generally executes with complexity _O(n<sup>2</sup>)_
+//! (although with small constant on Windows and Linux) so it can be disabled
+//! using [`unsafe_remove_duplicate_checks`](#unsafe_remove_duplicate_checks) feature.
+//! Enabling this feature is equivalent to **running unsafe code** so please consult it documentation
+//! before enabling.
+//!
+//! If duplicate `TypeId`s detected, program would write available information to stderr
+//! and terminate with error before reaching `main`.
+//!
+//! ## Available features
+//!
+//! ### debug_type_name
+//!
+//! Saves type name in derive invocation of [`HasTypeId`](derive.HasTypeId.html) macro,
+//! allowing to printing conflicting types in case of collision of [`HasTypeId::TYPE_ID`] values.
+//!
+//! The purpose of this feature only to debug cases of [`TypeId`] collisions.
+//!
+//! It is disabled by default to avoid wasting place in binary for useless strings.
+//!
+//! ### unsafe_remove_duplicate_checks
+//!
+//! Disables automatic verification of uniqueness of [`TypeId`]s.
+//! Use [`iter_registered_entries`] function to run verification yourself.
+//!
+//! The purpose of this feature is
+//!
+//! * to avoid running any code before `main`
+//! * to avoid _O(n<sup>2</sup>)_ complexity of automatic verification
+//! * to prevent linking with libc or kernel32.
+//!
+//! Please, don't enable this feauture in library crates. This should be done only
+//! in final binary crates because it may affect other libraries.
 //! ## Examples
 //!
 //! Use for distinguishing 2 types.
@@ -92,6 +150,14 @@
 //! const { assert!(! is_types_unique::<A, B, A>()) };
 //! assert!(is_types_unique::<A, B, C>());
 //! assert!(! is_types_unique::<A, B, A>());
+//! ```
+//!
+//! Adjusting generated `TypeId` using `#[small_type_id_seed]`
+//!
+//! ```
+//! #[derive(small_type_id::HasTypeId)]
+//! #[small_type_id_seed=42]
+//! enum MyType {A, B}
 //! ```
 //!
 //! ## Implementation details
@@ -170,36 +236,86 @@ pub use implementation::private;
 ///
 pub use small_type_id_proc_macro::HasTypeId;
 
+/// Unique id for a type.
+/// Have extra invariants about internal structure, described in [module documentation](index.html).
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct TypeId(pub(crate) NonZeroU32);
 
+/// Marks that type has [`TypeId`]
+///
+/// Implemented using derive macro.
+///
+/// ```
+/// #[derive(small_type_id::HasTypeId)]
+/// struct SomeType{}
+/// ```
+///
+/// It is possible to adjust resulting `TYPE_ID` by setting seed (must be `u32` literal):
+///
+/// ```
+/// #[derive(small_type_id::HasTypeId)]
+/// #[small_type_id_seed=42]
+/// struct SomeType{}
+/// ```
+///
+/// # Safety
+///
+/// To ensure that all [`HasTypeId::TYPE_ID`] values are unique,
+/// derive macro does bookkeeping and verification before invokation of `main`.
+/// Please, just use [derive macro](derive.HasTypeId.html).
 pub unsafe trait HasTypeId: 'static {
+    /// Unique identifier of type.
     const TYPE_ID: TypeId;
 }
 
+/// Entry that describes registered type information.
 #[non_exhaustive]
 #[derive(Clone, Copy)]
 pub struct TypeEntry {
+    /// Type id of entry.
+    /// Useful for testing that all generated type ids are unique.
     pub type_id: TypeId,
+    /// This field are useful for debugging.
+    /// **Do not** use it as key.
+    /// Available only if feature [`debug_type_name`](./index.html#debug_type_name) is enabled.
     #[cfg(feature = "debug_type_name")]
     pub type_name: &'static str,
 }
 
+/// Allows iteration over types that implemented [`HasTypeId`] trait using derive macro.
 pub fn iter_registered_entries() -> impl Iterator<Item = TypeEntry> {
     implementation::pub_iter_registered_types()
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct ErrorFromZeroBytes {}
+/// Error type for [`TypeId::from_bytes`].
+#[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
+pub struct ErrorInvalidBytes {
+    // Prevent construction in user code.
+    _x: (),
+}
 
 impl TypeId {
+    /// Returns value of type id as [`u32`].
+    /// Useful for comparing type ids in const context
+    /// because [`PartialEq`] trait doesn't work in it.
+    ///
+    /// ```
+    /// # use small_type_id::HasTypeId as _;
+    /// #[derive(small_type_id::HasTypeId)]
+    /// struct Type1{}
+    /// #[derive(small_type_id::HasTypeId)]
+    /// #[small_type_id_seed=42]
+    /// struct Type2{}
+    /// const { assert!(Type1::TYPE_ID.as_u32() != Type2::TYPE_ID.as_u32()) };
+    /// ```
     #[must_use]
     #[inline]
     pub const fn as_u32(self) -> u32 {
         self.0.get()
     }
 
+    /// Just for convenient conversion to [`usize`].
     #[cfg(not(target_pointer_width = "16"))]
     #[must_use]
     #[inline]
@@ -207,19 +323,35 @@ impl TypeId {
         self.0.get() as _
     }
 
+    /// Allows serializing value to bytes.
+    /// Note that value of `TypeId` for a type is not stable
+    /// (it can change if you change version of the crate)
+    /// so don't use it for persistent data.
     #[must_use]
     #[inline]
     pub const fn to_bytes(self) -> [u8; 4] {
+        // We use to_le_bytes because
+        // it is native for most modern systems.
         self.0.get().to_le_bytes()
     }
 
+    /// Allows deserializing value from bytes.
+    ///
+    /// # Safety
+    ///
+    /// Bytes should be from call to [`TypeId::to_bytes`].
+    ///
+    /// # Errors
+    ///
+    /// Return error if bytes contain definitely invalid `TypeId`
+    /// (doesn't conform to invariants).
     #[inline]
-    pub const unsafe fn from_bytes(bytes: [u8; 4]) -> Result<Self, ErrorFromZeroBytes> {
+    pub const unsafe fn from_bytes(bytes: [u8; 4]) -> Result<Self, ErrorInvalidBytes> {
+        const ALLOWED_BITS: u32 = u32::MAX >> 1;
         let val = u32::from_le_bytes(bytes);
-        if let Some(x) = NonZeroU32::new(val) {
-            Ok(Self(x))
-        } else {
-            Err(ErrorFromZeroBytes {})
+        match NonZeroU32::new(val) {
+            Some(x) if val & ALLOWED_BITS == val => Ok(Self(x)),
+            _ => Err(ErrorInvalidBytes { _x: () }),
         }
     }
 }
@@ -246,14 +378,14 @@ impl core::fmt::UpperHex for TypeId {
     }
 }
 
-impl core::fmt::Display for ErrorFromZeroBytes {
+impl core::fmt::Display for ErrorInvalidBytes {
     #[inline]
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str("ErrorFromZeroBytes")
+        f.write_str("ErrorInvalidBytes")
     }
 }
 
-impl core::error::Error for ErrorFromZeroBytes {}
+impl core::error::Error for ErrorInvalidBytes {}
 
 #[cfg(doctest)]
 #[doc = include_str!("../../ReadMe.md")]
