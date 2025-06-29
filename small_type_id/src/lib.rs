@@ -65,7 +65,7 @@
 //!
 //! Verification code generally executes with complexity _O(n<sup>2</sup>)_
 //! (although with small constant on Windows and Linux) so it can be disabled
-//! using [`unsafe_remove_duplicate_checks`](#unsafe_remove_duplicate_checks) feature.
+//! using [`unsafe_remove_duplicate_checks`](#feature-unsafe_remove_duplicate_checks) feature.
 //! Enabling this feature is equivalent to **running unsafe code** so please consult it documentation
 //! before enabling.
 //!
@@ -291,14 +291,14 @@ pub struct TypeEntry {
     pub type_id: TypeId,
     /// This field are useful for debugging.
     /// **Do not** use it as key.
-    /// Available only if feature [`debug_type_name`](./index.html#debug_type_name) is enabled.
+    /// Available only if feature [`debug_type_name`](./index.html#feauture-debug_type_name) is enabled.
     #[cfg(feature = "debug_type_name")]
     pub debug_type_name: &'static str,
 }
 
 /// Allows iteration over types that implemented [`HasTypeId`] trait using derive macro.
 ///
-/// Doesn't work if feature [`unsafe_dont_register_types`](#unsafe_dont_register_types) is enabled.
+/// Doesn't work if feature [`unsafe_dont_register_types`](./index.html#feature-unsafe_dont_register_types) is enabled.
 pub fn iter_registered_entries() -> impl Iterator<Item = TypeEntry> {
     implementation::pub_iter_registered_types()
 }
