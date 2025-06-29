@@ -114,11 +114,12 @@ fn test_id_to_name() {
 
 #[test]
 fn check_initial_value() {
+    eprintln!("{}", env!("CARGO_PKG_VERSION"));
     assert_eq!(
         xxhash_rust::const_xxh32::xxh32(
             concat!("basic::UnionType::", env!("CARGO_PKG_VERSION")).as_bytes(),
             if cfg!(windows) { 797 } else { 0 }
-        ),
+        ) ^ 0x8000_0000,
         UnionType::TYPE_ID.as_u32()
     );
 }

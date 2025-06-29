@@ -1,6 +1,6 @@
 [package]
 name = "small_type_id"
-version = "0.0.1-alpha"
+version = "0.0.1-alpha2"
 edition = "2024"
 authors = ["Angelicos Phosphoros (Timur Khuzin) <angelicos.phosphoros@protonmail.com>"]
 description = "Crate for generation constant 32 bit nonzero unique identifiers for types."
@@ -22,5 +22,5 @@ default = []
 
 [dependencies]
 ctor = { version = "0.4.2", default-features = false }
-small_type_id_proc_macro = { path = "../small_type_id_proc_macro", "version" = "0.0.1-alpha" }
+small_type_id_proc_macro = { path = "../small_type_id_proc_macro", "version" = "0.0.1-alpha2" }
 xxhash-rust = { version = "0.8.15", default-features = false, features = ["const_xxh32"] }
