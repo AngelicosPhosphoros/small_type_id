@@ -55,6 +55,7 @@ pub mod private {
     pub const fn compute_id<const TOTAL_INPUT_LEN: usize>(
         module_and_name: &str,
         crate_version: Option<&str>,
+        seed: u32,
     ) -> TypeId {
         let hash = if let Some(crate_version) = crate_version {
             let mut concatenated = [0; TOTAL_INPUT_LEN];
@@ -66,10 +67,10 @@ pub mod private {
             delim.copy_from_slice(b"::");
             version.copy_from_slice(crate_version.as_bytes());
 
-            xxh32(&concatenated, 0)
+            xxh32(&concatenated, seed)
         } else {
             assert!(TOTAL_INPUT_LEN == module_and_name.len());
-            xxh32(module_and_name.as_bytes(), 0)
+            xxh32(module_and_name.as_bytes(), seed)
         };
 
         let val = if hash == 0 { 1 } else { hash } & 0x7FFF_FFFF_u32;
@@ -376,13 +377,13 @@ mod tests {
     const MY_HASH_AND_CRATE: TypeId = {
         const INPUT_LEN: usize =
             private::compute_input_len(concat!(module_path!(), "::", "MyType"), Some("0.1.1"));
-        private::compute_id::<INPUT_LEN>(concat!(module_path!(), "::", "MyType"), Some("0.1.1"))
+        private::compute_id::<INPUT_LEN>(concat!(module_path!(), "::", "MyType"), Some("0.1.1"), 0)
     };
     #[allow(unused)]
     const MY_HASH_AND_NO_CRATE: TypeId = {
         const INPUT_LEN: usize =
             private::compute_input_len(concat!(module_path!(), "::", "MyType"), None);
-        private::compute_id::<INPUT_LEN>(concat!(module_path!(), "::", "MyType"), None)
+        private::compute_id::<INPUT_LEN>(concat!(module_path!(), "::", "MyType"), None, 0)
     };
 
     #[test]
@@ -414,48 +415,53 @@ mod tests {
 
         // This would be used for testing duplicate lookup in types.
         assert_eq!(
-            compute_id::<7>("hogtied", None),
-            compute_id::<10>("scouriness", None)
+            compute_id::<7>("hogtied", None, 0),
+            compute_id::<10>("scouriness", None, 0)
         );
-        assert_eq!(compute_id::<7>("hogtied", None).as_u32(), 0x5034ABE3);
+        assert_eq!(compute_id::<7>("hogtied", None, 0).as_u32(), 0x5034ABE3);
 
-        assert_eq!(compute_id::<5>("usize", None).as_u32(), 0x7847CC2E);
+        assert_eq!(compute_id::<5>("usize", None, 0).as_u32(), 0x7847CC2E);
         assert_eq!(
-            compute_id::<12>("usize", Some("0.0.0")).as_u32(),
+            compute_id::<12>("usize", Some("0.0.0"), 0).as_u32(),
             0x3064D6AA
         );
         assert_eq!(
-            compute_id::<12>("usize", Some("0.0.1")).as_u32(),
+            compute_id::<12>("usize", Some("0.0.1"), 0).as_u32(),
             0x791B53F2
         );
 
         // Check that we do not generate zeros.
         assert_eq!(xxh32(b"AasZkWq", 0), 0);
         assert_eq!(xxh32(b"RalEB24", 0), 0);
-        assert_ne!(compute_id::<7>("AasZkWq", None).as_u32(), 0);
-        assert_ne!(compute_id::<7>("RalEB24", None).as_u32(), 0);
-        assert_eq!(compute_id::<7>("AasZkWq", None).as_u32(), 1);
-        assert_eq!(compute_id::<7>("RalEB24", None).as_u32(), 1);
+        assert_ne!(compute_id::<7>("AasZkWq", None, 0).as_u32(), 0);
+        assert_ne!(compute_id::<7>("RalEB24", None, 0).as_u32(), 0);
+        assert_eq!(compute_id::<7>("AasZkWq", None, 0).as_u32(), 1);
+        assert_eq!(compute_id::<7>("RalEB24", None, 0).as_u32(), 1);
+
+        assert_ne!(
+            compute_id::<7>("AasZkWq", None, 1),
+            compute_id::<7>("RalEB24", None, 0)
+        );
 
         assert_eq!(u32::MAX >> 31, 1);
-        assert_eq!(compute_id::<9>("assaulted", None).as_u32() >> 31, 0);
-        assert_eq!(compute_id::<5>("usize", None).as_u32() >> 31, 0);
-        assert_eq!(compute_id::<7>("AasZkWq", None).as_u32() >> 31, 0);
-        assert_eq!(compute_id::<7>("RalEB24", None).as_u32() >> 31, 0);
+        assert_eq!(compute_id::<9>("assaulted", None, 0).as_u32() >> 31, 0);
+        assert_eq!(compute_id::<5>("usize", None, 0).as_u32() >> 31, 0);
+        assert_eq!(compute_id::<7>("AasZkWq", None, 0).as_u32() >> 31, 0);
+        assert_eq!(compute_id::<7>("RalEB24", None, 0).as_u32() >> 31, 0);
     }
 
     #[test]
     #[should_panic]
     fn compute_id_invalid_len_none() {
         use private::compute_id;
-        let _ = compute_id::<6>("hogtied", None);
+        let _ = compute_id::<6>("hogtied", None, 0);
     }
 
     #[test]
     #[should_panic]
     fn compute_id_invalid_len_some() {
         use private::compute_id;
-        let _ = compute_id::<7>("hogtied", Some("a.b.c"));
+        let _ = compute_id::<7>("hogtied", Some("a.b.c"), 0);
     }
 
     #[test]

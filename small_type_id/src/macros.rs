@@ -1,11 +1,10 @@
 #[doc(hidden)]
 #[macro_export]
 macro_rules! private_macro_implement_type_and_register {
-    ($tname:ident, $name_literal:literal) => {
+    ($tname:ident, $name_literal:literal, $seed:literal) => {
         const _: () = {
-            $crate::private::implement_type_id!($tname, $name_literal);
+            $crate::private::implement_type_id!($tname, $name_literal, $seed);
             $crate::private::register_type_id!($tname, $name_literal);
-            ()
         };
     };
 }
@@ -13,7 +12,7 @@ macro_rules! private_macro_implement_type_and_register {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! private_macro_implement_type_id {
-    ($tname:ident, $name_literal:literal) => {
+    ($tname:ident, $name_literal:literal, $seed:literal) => {
         unsafe impl $crate::HasTypeId for $tname {
             const TYPE_ID: $crate::TypeId = {
                 const INPUT_LEN: usize = $crate::private::compute_input_len(
@@ -23,6 +22,7 @@ macro_rules! private_macro_implement_type_id {
                 $crate::private::compute_id::<INPUT_LEN>(
                     ::core::concat!(::core::module_path!(), "::", $name_literal),
                     ::core::option_env!("CARGO_PKG_VERSION"),
+                    $seed,
                 )
             };
         }

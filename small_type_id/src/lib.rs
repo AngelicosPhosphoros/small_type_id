@@ -117,7 +117,7 @@
 //!
 
 #![deny(unsafe_op_in_unsafe_fn)]
-#![allow(clippy::uninlined_format_args)]
+#![allow(clippy::uninlined_format_args, clippy::collapsible_if)]
 #![cfg_attr(not(test), no_std)]
 
 use core::num::NonZeroU32;

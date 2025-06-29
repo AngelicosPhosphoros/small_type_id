@@ -1,4 +1,4 @@
-#![allow(clippy::uninlined_format_args)]
+#![allow(clippy::uninlined_format_args, clippy::collapsible_if)]
 
 use core::fmt::Write as _;
 use core::num::NonZeroUsize;

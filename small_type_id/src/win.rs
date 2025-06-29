@@ -42,7 +42,7 @@ pub(crate) fn print_error(stderr: &mut StdErr, msg: &str) {
                 stderr.0,
                 rest.as_ptr(),
                 bytes_to_write,
-                &mut written,
+                &raw mut written,
                 ptr::null_mut(),
             );
             if res == 0 {

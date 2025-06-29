@@ -8,6 +8,7 @@ use small_type_id::{HasTypeId, TypeId};
 struct MyType(#[allow(unused)] u32);
 
 #[derive(small_type_id::HasTypeId)]
+#[small_type_id_seed = 797]
 enum EnumType {
     _A,
     _B,
@@ -15,6 +16,8 @@ enum EnumType {
 }
 
 #[derive(small_type_id::HasTypeId)]
+#[repr(C)]
+#[cfg_attr(windows, small_type_id_seed = 797)]
 union UnionType {
     _f: f32,
     _u: usize,
@@ -103,4 +106,15 @@ fn test_id_to_name() {
     for entry in small_type_id::iter_registered_entries() {
         assert_eq!(entry.type_name, key_to_name[&entry.type_id]);
     }
+}
+
+#[test]
+fn check_initial_value() {
+    assert_eq!(
+        xxhash_rust::const_xxh32::xxh32(
+            concat!("basic::UnionType::", env!("CARGO_PKG_VERSION")).as_bytes(),
+            if cfg!(windows) { 797 } else { 0 }
+        ),
+        UnionType::TYPE_ID.as_u32()
+    );
 }

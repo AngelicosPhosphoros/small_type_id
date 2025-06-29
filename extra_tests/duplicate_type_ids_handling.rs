@@ -1,4 +1,8 @@
-#![allow(non_camel_case_types, clippy::uninlined_format_args)]
+#![allow(
+    non_camel_case_types,
+    clippy::uninlined_format_args,
+    clippy::collapsible_if
+)]
 // We don't want to register this executable
 // because it correctly abnormally exits before starting main
 // which used to collect tests.
