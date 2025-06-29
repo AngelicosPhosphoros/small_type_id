@@ -196,16 +196,6 @@ pub struct ErrorFromZeroBytes {}
 impl TypeId {
     #[must_use]
     #[inline]
-    pub const fn from_user_code(code: NonZeroU32) -> Self {
-        assert!(
-            code.get() & 0x8000_0000 == 0x8000_0000,
-            "User provided codes must set most significant byte to distinguish it from derived ones.",
-        );
-        Self(code)
-    }
-
-    #[must_use]
-    #[inline]
     pub const fn as_u32(self) -> u32 {
         self.0.get()
     }
