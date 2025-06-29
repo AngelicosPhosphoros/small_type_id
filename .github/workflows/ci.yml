@@ -32,10 +32,10 @@ jobs:
       # Pin clippy version to avoid introducing new CI failures.
       - name: Select Rust version
         run: rustup override set 1.87.0
+      - name: Install clippy
+        run: rustup component add clippy
       - name: Clippy
-        # Need to enable them later.
-        #run: cargo clippy -- -D clippy::pedantic
-        run: echo "Clippy step are disabled for now"
+        run: cargo clippy -- -D clippy::pedantic
   test-matrix:
     runs-on: ${{ matrix.os }}
     strategy:
