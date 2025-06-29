@@ -31,7 +31,9 @@ macro_rules! private_macro_implement_type_id {
 
 #[doc(hidden)]
 #[macro_export]
-#[cfg(not(any(target_os = "windows", target_os = "linux")))]
+#[cfg(not(feature = "unsafe_dont_register_types"))]
+#[cfg(not(target_os = "windows"))]
+#[cfg(not(target_os = "linux"))]
 macro_rules! private_macro_register_type_id {
     ($tname:ident, $name_literal:literal) => {
         static ENTRY: $crate::private::TypeEntry = $crate::private::TypeEntry::new(
@@ -53,6 +55,7 @@ macro_rules! private_macro_register_type_id {
 
 #[doc(hidden)]
 #[macro_export]
+#[cfg(not(feature = "unsafe_dont_register_types"))]
 #[cfg(any(target_os = "windows", target_os = "linux"))]
 macro_rules! private_macro_register_type_id {
     ($tname:ident, $name_literal:literal) => {
@@ -63,6 +66,13 @@ macro_rules! private_macro_register_type_id {
             <$tname as ::small_type_id::HasTypeId>::TYPE_ID,
         );
     };
+}
+
+#[doc(hidden)]
+#[macro_export]
+#[cfg(feature = "unsafe_dont_register_types")]
+macro_rules! private_macro_register_type_id {
+    ($tname:ident, $name_literal:literal) => {};
 }
 
 // This macro is needed to make every link_section attribute distinct

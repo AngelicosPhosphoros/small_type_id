@@ -61,6 +61,10 @@ fn types_in_modules_differ() {
 // MIRI unsupported until https://github.com/rust-lang/miri/issues/450 fixed
 #[cfg(not(miri))]
 fn iter_types() {
+    if cfg!(feature = "unsafe_dont_register_types") {
+        assert_eq!(small_type_id::iter_registered_entries().count(), 0);
+        return;
+    }
     let all_type_ids: Vec<TypeId> = small_type_id::iter_registered_entries()
         .map(|x| x.type_id)
         .collect();

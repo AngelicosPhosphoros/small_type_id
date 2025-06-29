@@ -70,11 +70,13 @@ jobs:
         run: cargo build --verbose --workspace --exclude benches
       - name: Run tests
         run: cargo test --workspace --exclude benches
-      - name: Run tests
+      - name: Run tests with names
         run: cargo test --workspace --exclude benches --features=debug_type_name
-      - name: Run tests
+      - name: Run tests without checks
         run: cargo test --workspace --exclude benches --features=unsafe_remove_duplicate_checks
-      - name: Run tests
+      - name: Run tests without registration
+        run: cargo test --workspace --exclude benches --features=unsafe_dont_register_types
+      - name: Run tests combined
         run: cargo test --workspace --exclude benches --features=debug_type_name,unsafe_remove_duplicate_checks
       - name: UI tests
         run: python extra_tests/cmp_output.py
@@ -92,11 +94,13 @@ jobs:
         run: podman run -t -w /small_type_id musl_rust cargo build --verbose --workspace --exclude benches
       - name: Rus tests
         run: podman run -t -w /small_type_id musl_rust cargo test --workspace --exclude benches
-      - name: Run tests
+      - name: Run tests with names
         run: podman run -t -w /small_type_id musl_rust cargo test --workspace --exclude benches --features=debug_type_name
-      - name: Run tests
+      - name: Run tests without checks
         run: podman run -t -w /small_type_id musl_rust cargo test --workspace --exclude benches --features=unsafe_remove_duplicate_checks
-      - name: Run tests
+      - name: Run tests without registration
+        run: podman run -t -w /small_type_id musl_rust cargo test --workspace --exclude benches --features=unsafe_dont_register_types
+      - name: Run tests combined
         run: podman run -t -w /small_type_id musl_rust cargo test --workspace --exclude benches --features=debug_type_name,unsafe_remove_duplicate_checks
       - name: UI tests
         run: podman run -t -w /small_type_id/extra_tests musl_rust python cmp_output.py
@@ -122,6 +126,9 @@ jobs:
       - run: cargo test --features=unsafe_remove_duplicate_checks
         working-directory: small_type_id
       - run: cargo test --features=debug_type_name,unsafe_remove_duplicate_checks
+        working-directory: small_type_id
+      - name: Run tests without registration
+        run: cargo test --features=unsafe_dont_register_types
         working-directory: small_type_id
   miri-checks:
     # No need to run on others because platform specific unsafe is not really testable

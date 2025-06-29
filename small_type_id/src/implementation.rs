@@ -43,7 +43,9 @@ pub mod private {
     }
 
     #[cold]
-    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+    #[cfg(not(target_os = "windows"))]
+    #[cfg(not(target_os = "linux"))]
+    #[cfg(not(feature = "unsafe_dont_register_types"))]
     pub unsafe fn register_type(entry: &'static TypeEntry) {
         unsafe {
             with_ctors_per_entry::register_type(entry);
@@ -94,18 +96,26 @@ pub mod private {
 }
 
 pub(crate) fn pub_iter_registered_types() -> impl Iterator<Item = crate::TypeEntry> {
-    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
-    let refs = with_ctors_per_entry::iter_registered_types();
-    #[cfg(any(target_os = "windows", target_os = "linux"))]
-    let refs = with_link_section::iter_registered_types();
+    #[cfg(feature = "unsafe_dont_register_types")]
+    {
+        core::iter::empty()
+    }
+    #[cfg(not(feature = "unsafe_dont_register_types"))]
+    {
+        #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+        let refs = with_ctors_per_entry::iter_registered_types();
+        #[cfg(any(target_os = "windows", target_os = "linux"))]
+        let refs = with_link_section::iter_registered_types();
 
-    refs.map(|e| crate::TypeEntry {
-        type_id: e.type_id,
-        #[cfg(feature = "debug_type_name")]
-        type_name: e.type_name,
-    })
+        refs.map(|e| crate::TypeEntry {
+            type_id: e.type_id,
+            #[cfg(feature = "debug_type_name")]
+            type_name: e.type_name,
+        })
+    }
 }
 
+#[cfg(not(feature = "unsafe_dont_register_types"))]
 #[cfg(any(target_os = "windows", target_os = "linux"))]
 mod with_link_section {
     use core::hint::black_box;
@@ -248,6 +258,7 @@ mod with_link_section {
     }
 }
 
+#[cfg(not(feature = "unsafe_dont_register_types"))]
 #[cfg(not(any(target_os = "windows", target_os = "linux")))]
 mod with_ctors_per_entry {
     use core::sync::atomic::Ordering::{AcqRel, Acquire, Relaxed};

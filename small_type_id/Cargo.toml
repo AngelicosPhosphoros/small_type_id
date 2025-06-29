@@ -17,6 +17,7 @@ features = ["debug_type_name"]
 # See crate core documentation page for help.
 debug_type_name = []
 unsafe_remove_duplicate_checks = []
+unsafe_dont_register_types = ["unsafe_remove_duplicate_checks"]
 default = []
 
 [dependencies]

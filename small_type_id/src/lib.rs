@@ -96,6 +96,19 @@
 //!
 //! Please, don't enable this feauture in library crates. This should be done only
 //! in final binary crates because it may affect other libraries.
+//!
+//! # unsafe_dont_register_types
+//!
+//! Implies `unsafe_remove_duplicate_checks`.
+//!
+//! Disables type registration entirely. Exists to be used in embedded environments
+//! when every single preserved byte is important.
+//!
+//! If you use this feature, do run tests without it before deploying your code.
+//!
+//! If this feature is enabled, there is no way to ensure that uniqueness
+//! of `TypeId`s is still guaranteed.
+//!
 //! ## Examples
 //!
 //! Use for distinguishing 2 types.
@@ -184,6 +197,7 @@
 
 #![deny(unsafe_op_in_unsafe_fn)]
 #![allow(clippy::uninlined_format_args, clippy::collapsible_if)]
+#![allow(clippy::doc_markdown)] // Interferes with docs about features.
 #![cfg_attr(not(test), no_std)]
 
 use core::num::NonZeroU32;
@@ -284,6 +298,8 @@ pub struct TypeEntry {
 }
 
 /// Allows iteration over types that implemented [`HasTypeId`] trait using derive macro.
+///
+/// Doesn't work if feature [`unsafe_dont_register_types`](#unsafe_dont_register_types) is enabled.
 pub fn iter_registered_entries() -> impl Iterator<Item = TypeEntry> {
     implementation::pub_iter_registered_types()
 }
