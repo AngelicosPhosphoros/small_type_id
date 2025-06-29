@@ -108,7 +108,7 @@ fn test_id_to_name() {
         .into_iter()
         .collect();
     for entry in small_type_id::iter_registered_entries() {
-        assert_eq!(entry.type_name, key_to_name[&entry.type_id]);
+        assert_eq!(entry.debug_type_name, key_to_name[&entry.type_id]);
     }
 }
 

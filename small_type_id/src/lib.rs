@@ -74,7 +74,7 @@
 //!
 //! ## Available features
 //!
-//! ### debug_type_name
+//! ### Feature `debug_type_name`
 //!
 //! Saves type name in derive invocation of [`HasTypeId`](derive.HasTypeId.html) macro,
 //! allowing to printing conflicting types in case of collision of [`HasTypeId::TYPE_ID`] values.
@@ -83,7 +83,7 @@
 //!
 //! It is disabled by default to avoid wasting place in binary for useless strings.
 //!
-//! ### unsafe_remove_duplicate_checks
+//! ### Feature `unsafe_remove_duplicate_checks`
 //!
 //! Disables automatic verification of uniqueness of [`TypeId`]s.
 //! Use [`iter_registered_entries`] function to run verification yourself.
@@ -97,7 +97,7 @@
 //! Please, don't enable this feauture in library crates. This should be done only
 //! in final binary crates because it may affect other libraries.
 //!
-//! # unsafe_dont_register_types
+//! ### Feature `unsafe_dont_register_types`
 //!
 //! Implies `unsafe_remove_duplicate_checks`.
 //!
@@ -197,7 +197,6 @@
 
 #![deny(unsafe_op_in_unsafe_fn)]
 #![allow(clippy::uninlined_format_args, clippy::collapsible_if)]
-#![allow(clippy::doc_markdown)] // Interferes with docs about features.
 #![cfg_attr(not(test), no_std)]
 
 use core::num::NonZeroU32;
@@ -294,7 +293,7 @@ pub struct TypeEntry {
     /// **Do not** use it as key.
     /// Available only if feature [`debug_type_name`](./index.html#debug_type_name) is enabled.
     #[cfg(feature = "debug_type_name")]
-    pub type_name: &'static str,
+    pub debug_type_name: &'static str,
 }
 
 /// Allows iteration over types that implemented [`HasTypeId`] trait using derive macro.

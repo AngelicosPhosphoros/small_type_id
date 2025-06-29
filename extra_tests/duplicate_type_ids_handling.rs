@@ -41,7 +41,7 @@ fn main() {
         }
         tested += 1;
         #[cfg(feature = "debug_type_name")]
-        names.push(entry.type_name);
+        names.push(entry.debug_type_name);
     }
     println!("Tested {} entries, found {} types", tested, set.len());
     #[cfg(feature = "debug_type_name")]

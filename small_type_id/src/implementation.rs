@@ -110,7 +110,7 @@ pub(crate) fn pub_iter_registered_types() -> impl Iterator<Item = crate::TypeEnt
         refs.map(|e| crate::TypeEntry {
             type_id: e.type_id,
             #[cfg(feature = "debug_type_name")]
-            type_name: e.type_name,
+            debug_type_name: e.type_name,
         })
     }
 }
