@@ -64,9 +64,10 @@
 //! Then, verification code is executed before `main`.
 //!
 //! Verification code generally executes with complexity _O(n<sup>2</sup>)_
-//! (although with small constant on Windows and Linux) so it can be disabled
-//! using [`unsafe_remove_duplicate_checks`](#feature-unsafe_remove_duplicate_checks) feature.
-//! Enabling this feature is equivalent to **running unsafe code** so please consult it documentation
+//! although with very small constant on Windows and Linux, e.g. it processes 60000 types faster than 100 ms in debug build.
+//!
+//! However, if it is inacceptible, it can be disabled using [`unsafe_remove_duplicate_checks`](#feature-unsafe_remove_duplicate_checks)
+//! feature. Enabling this feature is equivalent to **running unsafe code** so please consult it documentation
 //! before enabling.
 //!
 //! If duplicate `TypeId`s detected, program would write available information to stderr

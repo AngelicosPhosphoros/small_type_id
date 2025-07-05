@@ -60,6 +60,7 @@ pub mod private {
         seed: u32,
     ) -> TypeId {
         let hash = if let Some(crate_version) = crate_version {
+            assert!(TOTAL_INPUT_LEN == module_and_name.len() + crate_version.len() + 2);
             let mut concatenated = [0; TOTAL_INPUT_LEN];
             // Need to use split_at_mut because slice[x..y] syntax doesn't work in const fns.
             let (head, tail) = concatenated.split_at_mut(module_and_name.len());
@@ -201,7 +202,7 @@ mod with_link_section {
 
     #[cfg(not(feature = "unsafe_remove_duplicate_checks"))]
     fn check_registered_entries() {
-        let mut buffer = [0_u32; 1024];
+        let mut buffer = [0_u32; 2048];
         let mut it = iter_registered_types();
         loop {
             #[cfg(feature = "debug_type_name")]
