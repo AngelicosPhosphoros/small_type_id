@@ -55,7 +55,7 @@
 //!
 //! ### How uniqueness of `TypeIds` are enforced
 //!
-//! Using only 31 bit for [`TypeId`] makes it quite possible (though unlikely)
+//! Using only 31 bit for [`TypeId`] makes collisions quite possible (though unlikely)
 //! so it is necessaryto verify uniqueness of generated ids.
 //!
 //! All invocations of [`HasTypeId`](derive.HasTypeId.html) macro generate
