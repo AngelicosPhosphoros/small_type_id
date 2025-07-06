@@ -78,6 +78,18 @@ const { assert!(Struct::TYPE_ID.as_u32() != Enum::TYPE_ID.as_u32()); };
 
 More examples and implementation explanation are available in [documentation][6].
 
+## Safety
+
+Uniqueness is tested before running `fn main()` (unless opt-out), so code can rely on type ids being unique.
+Code is tested in CI on following platforms:
+
+1. macos
+2. Windows
+3. Linux with the following libc implementations:
+    * glibc
+    * musl
+    * [eyra-libc][10]
+
 ## Acknowledgments
 
 * Thanks to [**mmastrac**][7] for crate [`ctor`][5] used for implementing this crate.
@@ -94,3 +106,4 @@ link sections for gathering statics.
 [7]: https://crates.io/users/mmastrac
 [8]: https://crates.io/users/dtolnay
 [9]: https://devblogs.microsoft.com/oldnewthing/author/oldnewthing
+[10]: https://crates.io/crates/eyra

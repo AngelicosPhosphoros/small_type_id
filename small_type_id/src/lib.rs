@@ -110,6 +110,17 @@
 //! If this feature is enabled, there is no way to ensure that uniqueness
 //! of `TypeId`s is still guaranteed.
 //!
+//! ## Semver breaking policy
+//!
+//! The following changes are not considered breaking:
+//!
+//! 1. Changes of string representation of type ids
+//! 2. Changes of uniqueness verification algorithm
+//! 3. Change of type id generation algorithm (and resulting values of type ids)
+//! 4. Changes of type registration code
+//! 5. Additions of new types, functions, modules
+//! 6. Any changes in `private` module (users should not use it directly)
+//!
 //! ## Examples
 //!
 //! Use for distinguishing 2 types.
@@ -254,6 +265,7 @@ pub use small_type_id_proc_macro::HasTypeId;
 /// Have extra invariants about internal structure, described in [module documentation](index.html).
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
+#[non_exhaustive]
 pub struct TypeId(pub(crate) NonZeroU32);
 
 /// Marks that type has [`TypeId`]
