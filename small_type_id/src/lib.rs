@@ -87,7 +87,7 @@
 //! ### Feature `unsafe_remove_duplicate_checks`
 //!
 //! Disables automatic verification of uniqueness of [`TypeId`]s.
-//! Use [`iter_registered_entries`] function to run verification yourself.
+//! Use [`iter_registered_types`] function to run verification yourself.
 //!
 //! The purpose of this feature is
 //!
@@ -300,7 +300,7 @@ pub struct TypeEntry {
 /// Allows iteration over types that implemented [`HasTypeId`] trait using derive macro.
 ///
 /// Doesn't work if feature [`unsafe_dont_register_types`](./index.html#feature-unsafe_dont_register_types) is enabled.
-pub fn iter_registered_entries() -> impl Iterator<Item = TypeEntry> {
+pub fn iter_registered_types() -> impl Iterator<Item = TypeEntry> {
     implementation::pub_iter_registered_types()
 }
 

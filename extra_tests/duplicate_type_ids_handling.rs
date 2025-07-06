@@ -32,7 +32,7 @@ fn main() {
     let mut tested = 0;
     #[cfg(feature = "debug_type_name")]
     let mut names = Vec::new();
-    for entry in small_type_id::iter_registered_entries() {
+    for entry in small_type_id::iter_registered_types() {
         if !set.insert(entry.type_id) {
             eprintln!(
                 "Detected error at the start of main! Found duplicate type_id {}.",

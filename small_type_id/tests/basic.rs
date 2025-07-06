@@ -62,10 +62,10 @@ fn types_in_modules_differ() {
 #[cfg(not(miri))]
 fn iter_types() {
     if cfg!(feature = "unsafe_dont_register_types") {
-        assert_eq!(small_type_id::iter_registered_entries().count(), 0);
+        assert_eq!(small_type_id::iter_registered_types().count(), 0);
         return;
     }
-    let all_type_ids: Vec<TypeId> = small_type_id::iter_registered_entries()
+    let all_type_ids: Vec<TypeId> = small_type_id::iter_registered_types()
         .map(|x| x.type_id)
         .collect();
     assert_eq!(all_type_ids.len(), 6);
@@ -83,7 +83,7 @@ fn iter_types() {
         .collect()
     };
     assert_eq!(set, etalon);
-    let second_iteration: Vec<TypeId> = small_type_id::iter_registered_entries()
+    let second_iteration: Vec<TypeId> = small_type_id::iter_registered_types()
         .map(|x| x.type_id)
         .collect();
     assert_eq!(all_type_ids, second_iteration);
@@ -107,7 +107,7 @@ fn test_id_to_name() {
         ]
         .into_iter()
         .collect();
-    for entry in small_type_id::iter_registered_entries() {
+    for entry in small_type_id::iter_registered_types() {
         assert_eq!(entry.debug_type_name, key_to_name[&entry.type_id]);
     }
 }
