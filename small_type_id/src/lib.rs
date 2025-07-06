@@ -1,4 +1,3 @@
-//! # THIS IS ALPHA RELEASE PLEASE DO NOT USE
 //! This crate provides 3 things:
 //!
 //! 1. [`TypeId`] type that is used to identify type.
@@ -11,7 +10,7 @@
 //! 2. Size is 32 bit.
 //! 3. `TypeId` cannot be zero which allows [niche optimizations][1] (`size_of::<Option<TypeId>>()` is 4 bytes).
 //! 4. Most significant bit (_MSB_) is guaranteed to be zero:
-//!    * Allows users to use this bit to distinguish with some other kind of id in a union (e.g. Runtime types from some scripting engine).
+//!    * Allows users to use this bit to distinguish with some other kind of id in a union (e.g. runtime types from some scripting engine).
 //!
 //! The following guarantees are effective for current version but may change with major release:
 //!
@@ -56,8 +55,8 @@
 //!
 //! ### How uniqueness of `TypeIds` are enforced
 //!
-//! Using only 31 bit for [`TypeId`] makes it quite possible though unlikely
-//! so there is a necessity of validation of uniqueness of generated ids.
+//! Using only 31 bit for [`TypeId`] makes it quite possible (though unlikely)
+//! so it is necessaryto verify uniqueness of generated ids.
 //!
 //! All invocations of [`HasTypeId`](derive.HasTypeId.html) macro generate
 //! code that registers the type in big list of types that have [`TypeId`].
@@ -70,7 +69,7 @@
 //! feature. Enabling this feature is equivalent to **running unsafe code** so please consult it documentation
 //! before enabling.
 //!
-//! If duplicate `TypeId`s detected, program would write available information to stderr
+//! If duplicate `TypeId`s detected, program would write some debug information to stderr
 //! and terminate with error before reaching `main`.
 //!
 //! ## Available features

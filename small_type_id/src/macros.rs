@@ -85,7 +85,7 @@ macro_rules! private_macro_small_type_id_version {
         // Use underscores instead of dots because otherwise
         // linker doesn't define `__start_<sectionname>` and `__stop_<sectionname>`
         // variables.
-        "0_0_1_alpha2"
+        "0_1_0"
     };
 }
 

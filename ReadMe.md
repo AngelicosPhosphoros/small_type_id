@@ -1,5 +1,3 @@
-# THIS IS ALPHA RELEASE PLEASE DO NOT USE
-
 [![Crates.io Version](https://img.shields.io/crates/v/small_type_id)](https://crates.io/crates/small_type_id)
 [![tests](https://github.com/AngelicosPhosphoros/small_type_id/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/AngelicosPhosphoros/small_type_id/actions)
 [![docs.rs](https://img.shields.io/docsrs/small_type_id)](https://docs.rs/small_type_id/latest/small_type_id/)
