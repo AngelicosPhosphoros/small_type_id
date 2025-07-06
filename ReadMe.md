@@ -78,7 +78,7 @@ const { assert!(Struct::TYPE_ID.as_u32() != Enum::TYPE_ID.as_u32()); };
 
 More examples and implementation explanation are available in [documentation][6].
 
-## Acknowledgements
+## Acknowledgments
 
 * Thanks to [**mmastrac**][7] for crate [`ctor`][5] used for implementing this crate.
 * Thanks to [**dtolnay**][8] for crate `linkme` which helped to learn me about using
