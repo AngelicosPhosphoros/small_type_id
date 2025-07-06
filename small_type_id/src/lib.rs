@@ -303,7 +303,7 @@ pub struct TypeEntry {
     pub type_id: TypeId,
     /// This field are useful for debugging.
     /// **Do not** use it as key.
-    /// Available only if feature [`debug_type_name`](./index.html#feauture-debug_type_name) is enabled.
+    /// Available only if feature [`debug_type_name`](./index.html#feature-debug_type_name) is enabled.
     #[cfg(feature = "debug_type_name")]
     pub debug_type_name: &'static str,
 }
