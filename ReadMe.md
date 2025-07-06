@@ -90,6 +90,8 @@ Code is tested in CI on following platforms:
     * musl
     * [eyra-libc][10]
 
+There is also some testing with [Address-Sanitizer][11].
+
 ## Acknowledgments
 
 * Thanks to [**mmastrac**][7] for crate [`ctor`][5] used for implementing this crate.
@@ -107,3 +109,4 @@ link sections for gathering statics.
 [8]: https://crates.io/users/dtolnay
 [9]: https://devblogs.microsoft.com/oldnewthing/author/oldnewthing
 [10]: https://crates.io/crates/eyra
+[11]: https://doc.rust-lang.org/beta/unstable-book/compiler-flags/sanitizer.html#addresssanitizer
