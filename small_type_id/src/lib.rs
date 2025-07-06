@@ -185,8 +185,8 @@
 //!
 //! Current computation algorithm is [xxhash32][3].
 //!
-//! Also, we utilize [`ctor`][4] crate to register that type in global linked list and run verification
-//! of uniqueness of `TypeId`s.
+//! We collect all derived types either by using statics linked to special section (on Linux and Windows),
+//! or put them in a linked list by running code before `main`. We run code before `main` using crate [`ctor`][4].
 //!
 //!
 //!

@@ -78,9 +78,19 @@ const { assert!(Struct::TYPE_ID.as_u32() != Enum::TYPE_ID.as_u32()); };
 
 More examples and implementation explanation are available in [documentation][6].
 
+## Acknowledgements
+
+* Thanks to [**mmastrac**][7] for crate [`ctor`][5] used for implementing this crate.
+* Thanks to [**dtolnay**][8] for crate `linkme` which helped to learn me about using
+link sections for gathering statics.
+* Thanks to [**Raymond Chen**][9] for his explanations about linker sections.
+
 [1]: https://doc.rust-lang.org/std/option/index.html#representation
 [2]: https://docs.rs/typeid/1.0.3/typeid/struct.ConstTypeId.html
 [3]: https://crates.io/crates/typeid
 [4]: https://doc.rust-lang.org/std/any/struct.TypeId.html
 [5]: https://crates.io/crates/ctor
 [6]: https://docs.rs/small_type_id/latest/small_type_id/
+[7]: https://crates.io/users/mmastrac
+[8]: https://crates.io/users/dtolnay
+[9]: https://devblogs.microsoft.com/oldnewthing/author/oldnewthing
