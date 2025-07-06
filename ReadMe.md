@@ -32,7 +32,7 @@ With `std::any::TypeId` as at Rust 1.87.
 3. Size of `small_type_id::TypeId` is significantly smaller(4 vs 16 bytes), allowing better performance due to less usage of CPU cache.
 4. `small_type_id::TypeId` supports niche optimization for `Option<small_type_id::TypeId>`.
 5. `small_type_id::TypeId` guarantees that MSB is zero, allowing creating 32 bit identifiers by users using `union`s:
-  * Since user types would need to set MSB to 1, resulting value is still cannot be zero, allowing niche optimization.
+   * Since user types would need to set MSB to 1, resulting value is still cannot be zero, allowing niche optimization.
 
 #### Downsides
 
