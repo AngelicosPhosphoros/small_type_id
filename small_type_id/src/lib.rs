@@ -216,6 +216,9 @@ mod hex;
 mod implementation;
 mod macros;
 
+#[cfg(any(test, doctest, not(any(target_os = "windows", target_os = "linux"))))]
+mod skip_list;
+
 pub use implementation::private;
 
 /// Implements [`HasTypeId`] trait and registers implementation for runtime verification.
