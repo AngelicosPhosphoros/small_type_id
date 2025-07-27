@@ -1,12 +1,15 @@
 use core::ptr;
 
-type Handle = u32;
-const STD_ERROR_HANDLE: Handle = 0xFFFF_FFF4;
+#[repr(transparent)]
+#[derive(Clone, Copy)]
+struct Handle(u32);
+
+const STD_ERROR_HANDLE: u32 = 0xFFFF_FFF4;
 const PROCESS_TERMINATE_ACCESS: u32 = 1;
 
-#[link(name = "Kernel32", kind = "dylib")]
+#[link(name = "Kernel32", kind = "raw-dylib")]
 unsafe extern "system" {
-    fn GetStdHandle(handle: Handle) -> Handle;
+    fn GetStdHandle(handle: u32) -> Handle;
     fn WriteFile(
         file_handle: Handle,
         buffer: *const u8,
