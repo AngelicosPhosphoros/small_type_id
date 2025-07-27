@@ -1,3 +1,9 @@
+#![allow(
+    clippy::uninlined_format_args,
+    clippy::collapsible_if,
+    clippy::explicit_iter_loop
+)]
+
 use small_type_id::{HasTypeId, TypeId};
 
 #[derive(small_type_id::HasTypeId)]

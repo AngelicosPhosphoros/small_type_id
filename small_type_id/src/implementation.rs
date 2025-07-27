@@ -1,8 +1,4 @@
 use core::num::NonZeroU32;
-#[cfg(not(any(target_os = "windows", target_os = "linux")))]
-use core::ptr;
-#[cfg(not(any(target_os = "windows", target_os = "linux")))]
-use core::sync::atomic::AtomicPtr;
 
 use xxhash_rust::const_xxh32::xxh32;
 
@@ -19,34 +15,49 @@ pub mod private {
     pub use ctor::declarative::ctor;
 
     #[repr(C)]
+    #[cfg_attr(
+        any(
+            feature = "dont_use_link_section",
+            not(any(target_os = "windows", target_os = "linux"))
+        ),
+        derive(Copy, Clone)
+    )]
     pub struct TypeEntry {
         pub(super) type_id: TypeId,
         #[cfg(feature = "debug_type_name")]
         pub(super) type_name: &'static str,
-        #[cfg(not(any(target_os = "windows", target_os = "linux")))]
-        pub(super) next: AtomicPtr<TypeEntry>,
     }
 
     impl TypeEntry {
         #[must_use]
         pub const fn new(type_name: &'static str, type_id: TypeId) -> TypeEntry {
+            // To suppress warning if name is not used.
             let _ = type_name;
 
             Self {
                 type_id,
-                #[cfg(not(any(target_os = "windows", target_os = "linux")))]
-                next: AtomicPtr::new(ptr::null_mut()),
                 #[cfg(feature = "debug_type_name")]
                 type_name,
             }
         }
     }
 
-    #[cold]
-    #[cfg(not(target_os = "windows"))]
-    #[cfg(not(target_os = "linux"))]
     #[cfg(not(feature = "unsafe_dont_register_types"))]
-    pub unsafe fn register_type(entry: &'static TypeEntry) {
+    #[cfg(any(
+        feature = "dont_use_link_section",
+        not(any(target_os = "windows", target_os = "linux"))
+    ))]
+    pub use with_ctors_per_entry::LinkedNode;
+
+    /// # SAFETY
+    /// Must be called exactly once per entry during initialization sequence.
+    #[cold]
+    #[cfg(any(
+        feature = "dont_use_link_section",
+        not(any(target_os = "windows", target_os = "linux"))
+    ))]
+    #[cfg(not(feature = "unsafe_dont_register_types"))]
+    pub unsafe fn register_type(entry: &'static with_ctors_per_entry::LinkedNode) {
         unsafe {
             with_ctors_per_entry::register_type(entry);
         }
@@ -103,9 +114,13 @@ pub(crate) fn pub_iter_registered_types() -> impl Iterator<Item = crate::TypeEnt
     }
     #[cfg(not(feature = "unsafe_dont_register_types"))]
     {
-        #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+        #[cfg(any(
+            feature = "dont_use_link_section",
+            not(any(target_os = "windows", target_os = "linux"))
+        ))]
         let refs = with_ctors_per_entry::iter_registered_types();
         #[cfg(any(target_os = "windows", target_os = "linux"))]
+        #[cfg(not(feature = "dont_use_link_section"))]
         let refs = with_link_section::iter_registered_types();
 
         refs.map(|e| crate::TypeEntry {
@@ -116,6 +131,7 @@ pub(crate) fn pub_iter_registered_types() -> impl Iterator<Item = crate::TypeEnt
     }
 }
 
+#[cfg(not(feature = "dont_use_link_section"))]
 #[cfg(not(feature = "unsafe_dont_register_types"))]
 #[cfg(any(target_os = "windows", target_os = "linux"))]
 mod with_link_section {
@@ -260,67 +276,108 @@ mod with_link_section {
 }
 
 #[cfg(not(feature = "unsafe_dont_register_types"))]
-#[cfg(not(any(target_os = "windows", target_os = "linux")))]
+#[cfg(any(
+    feature = "dont_use_link_section",
+    not(any(target_os = "windows", target_os = "linux"))
+))]
 mod with_ctors_per_entry {
-    use core::sync::atomic::Ordering::{AcqRel, Acquire, Relaxed};
+    use core::cell::UnsafeCell;
+    use core::sync::atomic::AtomicBool;
+    use core::sync::atomic::Ordering::{Acquire, Release};
+
+    use crate::skip_list::{InsertResult, SkipList, SkipListNode};
 
     #[allow(clippy::wildcard_imports)]
     use super::*;
 
-    static LAST_ADDED_TYPE: AtomicPtr<private::TypeEntry> = AtomicPtr::new(ptr::null_mut());
+    pub struct LinkedNode(UnsafeCell<SkipListNode<private::TypeEntry, 10>>);
 
-    pub(super) fn iter_registered_types()
-    -> impl Iterator<Item = &'static private::TypeEntry> + Clone {
-        let mut current = LAST_ADDED_TYPE.load(Acquire);
-        core::iter::from_fn(move || unsafe {
-            if let Some(rf) = current.as_ref() {
-                // Note: Relaxed is enough because list is append only
-                // and we already did Acquire load.
-                current = rf.next.load(Relaxed);
-                Some(rf)
-            } else {
-                None
-            }
-        })
+    impl LinkedNode {
+        #[must_use]
+        pub const fn new(e: private::TypeEntry) -> Self {
+            Self(UnsafeCell::new(SkipListNode::new(e)))
+        }
     }
 
-    pub(super) unsafe fn register_type(entry: &'static private::TypeEntry) {
-        debug_assert!(
-            entry.next.load(Relaxed).is_null(),
-            "TypeEntries must be generated only using macro"
-        );
+    // SAFETY: This type must be used only by private macros,
+    // if they are correct. Values are modified only during init sequence
+    // so they are updated only in a single thread.
+    unsafe impl Sync for LinkedNode {}
 
-        let mut next = LAST_ADDED_TYPE.load(Relaxed);
-        loop {
-            entry.next.store(next, Relaxed);
-            let p: *mut private::TypeEntry = ptr::from_ref(entry).cast_mut();
-            match LAST_ADDED_TYPE.compare_exchange_weak(next, p, AcqRel, Relaxed) {
-                Ok(_) => break,
-                Err(p) => next = p,
+    struct SkipListShared {
+        list: UnsafeCell<SkipList<'static, private::TypeEntry, 10>>,
+    }
+
+    // SAFETY:
+    // 1. All modifications happens only during initialization sequence.
+    // 2. We additionally assert that modification runs in unique thread using atomic flag.
+    unsafe impl Sync for SkipListShared {}
+
+    static TYPE_ENTRIES: SkipListShared = SkipListShared {
+        list: UnsafeCell::new(SkipList::new()),
+    };
+    static IS_CURRENTLY_BEING_INSERTED: AtomicBool = AtomicBool::new(false);
+
+    pub(super) fn iter_registered_types() -> impl Iterator<Item = &'static private::TypeEntry> {
+        assert!(!IS_CURRENTLY_BEING_INSERTED.load(Acquire));
+        // SAFETY: Modifications should happen only during initialization sequence.
+        // This method is not called when we inserting new type entry.
+        // Entries in the list doesn't moved or edited when new entry is inserted
+        // so resulting references are safe to access.
+        unsafe { (*TYPE_ENTRIES.list.get()).iter() }
+    }
+
+    pub(super) unsafe fn register_type(entry: &'static LinkedNode) {
+        struct ModifyGuard {}
+        impl Drop for ModifyGuard {
+            fn drop(&mut self) {
+                IS_CURRENTLY_BEING_INSERTED.store(false, Release);
             }
         }
 
-        // This code tests that we don't have registered any duplicates.
-        // Unfortunately, it runs in quadratic time.
-        #[cfg(not(feature = "unsafe_remove_duplicate_checks"))]
-        check_for_duplicates_of_first();
-    }
+        assert!(!IS_CURRENTLY_BEING_INSERTED.swap(true, Acquire));
+        let _modify_guard = ModifyGuard {};
 
-    #[cfg(not(feature = "unsafe_remove_duplicate_checks"))]
-    fn check_for_duplicates_of_first() {
-        let mut it = iter_registered_types();
-        let first_entry = it.next().unwrap();
-        let type_id = first_entry.type_id;
-        for entry in it {
-            if type_id == entry.type_id {
+        let list = unsafe { &mut *TYPE_ENTRIES.list.get() };
+
+        // SAFETY: By safety contract of function.
+        let entry: &mut SkipListNode<_, 10> = unsafe { &mut *entry.0.get() };
+        let val = *entry.get_value();
+        let insertion_res = list.insert(entry);
+
+        match insertion_res {
+            InsertResult::Unique => return,
+            InsertResult::Duplicate(dup) => {
+                debug_assert_eq!(val.type_id, dup.type_id);
+                #[cfg(not(feature = "unsafe_remove_duplicate_checks"))]
                 handle_duplicate_typeid(
-                    type_id,
+                    dup.type_id,
                     #[cfg(feature = "debug_type_name")]
-                    iter_registered_types(),
-                );
+                    [&dup, &val],
+                )
             }
+        };
+    }
+
+    impl Ord for private::TypeEntry {
+        #[inline]
+        fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+            self.type_id.cmp(&other.type_id)
         }
     }
+    impl PartialOrd for private::TypeEntry {
+        #[inline]
+        fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+            Some(self.cmp(other))
+        }
+    }
+    impl PartialEq for private::TypeEntry {
+        #[inline]
+        fn eq(&self, other: &Self) -> bool {
+            self.cmp(other) == core::cmp::Ordering::Equal
+        }
+    }
+    impl Eq for private::TypeEntry {}
 }
 
 #[cfg(not(feature = "unsafe_remove_duplicate_checks"))]
@@ -328,18 +385,22 @@ mod with_ctors_per_entry {
 #[cfg_attr(unix, path = "unix.rs")]
 mod platform;
 
+#[cfg_attr(
+    not(feature = "debug_type_name"),
+    allow(clippy::extra_unused_lifetimes)
+)]
 #[cfg(not(feature = "unsafe_remove_duplicate_checks"))]
 #[cold]
 #[inline(never)]
-fn handle_duplicate_typeid(
+fn handle_duplicate_typeid<'a>(
     type_id: TypeId,
-    #[cfg(feature = "debug_type_name")] iter_types: impl Iterator<Item = &'static private::TypeEntry>,
+    #[cfg(feature = "debug_type_name")] iter_types: impl IntoIterator<Item = &'a private::TypeEntry>,
 ) -> ! {
     let hex_val = hex::HexView::new(type_id.as_u32());
 
     #[cfg(feature = "debug_type_name")]
     let (e0, e1) = {
-        let mut iter_types = iter_types.filter(|x| x.type_id == type_id);
+        let mut iter_types = iter_types.into_iter().filter(|x| x.type_id == type_id);
         let e0 = iter_types.next().unwrap();
         let e1 = iter_types.next().unwrap();
         // We order this 2 entries for ease of testing.
@@ -418,7 +479,7 @@ mod tests {
         assert_eq!(
             xxh32(b"duplicate_type_ids_handling::XaaG::0.0.0", 0),
             xxh32(b"duplicate_type_ids_handling::Jaaadtd::0.0.0", 0),
-        )
+        );
     }
 
     #[test]

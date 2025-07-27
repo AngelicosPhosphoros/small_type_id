@@ -31,20 +31,25 @@ macro_rules! private_macro_implement_type_id {
 
 #[doc(hidden)]
 #[macro_export]
+#[cfg(any(
+    feature = "dont_use_link_section",
+    not(any(target_os = "windows", target_os = "linux")),
+))]
 #[cfg(not(feature = "unsafe_dont_register_types"))]
-#[cfg(not(target_os = "windows"))]
-#[cfg(not(target_os = "linux"))]
 macro_rules! private_macro_register_type_id {
     ($tname:ident, $name_literal:literal) => {
-        static ENTRY: $crate::private::TypeEntry = $crate::private::TypeEntry::new(
-            ::core::concat!(::core::module_path!(), "::", $name_literal),
-            <$tname as ::small_type_id::HasTypeId>::TYPE_ID,
-        );
+        static ENTRY: $crate::private::LinkedNode =
+            $crate::private::LinkedNode::new($crate::private::TypeEntry::new(
+                ::core::concat!(::core::module_path!(), "::", $name_literal),
+                <$tname as ::small_type_id::HasTypeId>::TYPE_ID,
+            ));
 
         $crate::private::ctor! {
             #[ctor]
             #[inline]
             unsafe fn register_0kkvmqvjv2brioq8eilz7() {
+                // SAFETY: Both ENTRY and this function is not accessible
+                // because they are declared inside of block initializing static variable.
                 unsafe {
                     $crate::private::register_type(&ENTRY);
                 }
@@ -56,6 +61,7 @@ macro_rules! private_macro_register_type_id {
 #[doc(hidden)]
 #[macro_export]
 #[cfg(not(feature = "unsafe_dont_register_types"))]
+#[cfg(not(feature = "dont_use_link_section"))]
 #[cfg(any(target_os = "windows", target_os = "linux"))]
 macro_rules! private_macro_register_type_id {
     ($tname:ident, $name_literal:literal) => {

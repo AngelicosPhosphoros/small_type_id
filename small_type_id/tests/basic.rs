@@ -1,4 +1,9 @@
 #![cfg_attr(miri, allow(unused_imports))]
+#![allow(
+    clippy::uninlined_format_args,
+    clippy::collapsible_if,
+    clippy::explicit_iter_loop
+)]
 
 use std::collections::HashSet;
 

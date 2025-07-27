@@ -109,6 +109,15 @@
 //! If this feature is enabled, there is no way to ensure that uniqueness
 //! of `TypeId`s is still guaranteed.
 //!
+//! ### Features `dont_use_link_section`
+//!
+//! This features mostly needed for testing code that used when target doesn't have
+//! linking sections implemented on platforms that have.
+//!
+//! It disables usage of link sections for gathering of existing type ids for uniqueness
+//! check. It would decrease performance because program would have an initialization function
+//! invokation for each type that implements [`HasTypeId`].
+//!
 //! ## Semver breaking policy
 //!
 //! The following changes are not considered breaking:
@@ -207,7 +216,11 @@
 //!
 
 #![deny(unsafe_op_in_unsafe_fn)]
-#![allow(clippy::uninlined_format_args, clippy::collapsible_if)]
+#![allow(
+    clippy::uninlined_format_args,
+    clippy::collapsible_if,
+    clippy::explicit_iter_loop
+)]
 #![cfg_attr(not(test), no_std)]
 
 use core::num::NonZeroU32;
@@ -215,6 +228,14 @@ use core::num::NonZeroU32;
 mod hex;
 mod implementation;
 mod macros;
+
+#[cfg(any(
+    feature = "dont_use_link_section",
+    test,
+    doctest,
+    not(any(target_os = "windows", target_os = "linux"))
+))]
+mod skip_list;
 
 pub use implementation::private;
 
