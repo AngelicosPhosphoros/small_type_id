@@ -125,6 +125,8 @@ tests = (
     TestSet(features=fs(), ret_code=error_code, stdout="", stderr="etalons/auto_no_names.txt"),
     TestSet(features=fs({"debug_type_name"}), ret_code=error_code,
         stdout="", stderr="etalons/auto_with_names.txt"),
+    TestSet(features=fs({"debug_type_name", "dont_use_link_section"}), ret_code=error_code,
+        stdout="", stderr="etalons/auto_with_names.txt"),
     TestSet(features=fs({"unsafe_remove_duplicate_checks"}), ret_code=0,
         stdout="etalons/m_stdout_no_names.txt", stderr="etalons/m_stderr.txt"),
     TestSet(features=fs({"unsafe_remove_duplicate_checks", "debug_type_name"}),
