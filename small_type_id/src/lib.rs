@@ -222,6 +222,7 @@
     clippy::explicit_iter_loop
 )]
 #![cfg_attr(not(test), no_std)]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 use core::num::NonZeroU32;
 
