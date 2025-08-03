@@ -11,17 +11,49 @@ readme = "../ReadMe.md"
 rust-version = "1.87"
 
 [package.metadata.docs.rs]
-features = ["debug_type_name"]
+features = ["debug_type_name", "document-features"]
 
 [features]
-# See crate core documentation page for help.
-debug_type_name = []
-unsafe_remove_duplicate_checks = []
-unsafe_dont_register_types = ["unsafe_remove_duplicate_checks"]
 default = []
+## Saves type name in derive invocation of [`HasTypeId`](derive.HasTypeId.html) macro,
+## allowing to printing conflicting types in case of collision of [`HasTypeId::TYPE_ID`] values.
+##
+## The purpose of this feature only to debug cases of [`TypeId`] collisions.
+##
+## It is disabled by default to avoid wasting place in binary for useless strings.
+debug_type_name = []
+## Disables automatic verification of uniqueness of [`TypeId`]s.
+## Use [`iter_registered_types`] function to run verification yourself.
+##
+## The purpose of this feature is
+##
+## * to avoid running any code before `main`
+## * to prevent linking with libc or kernel32.
+##
+## Please, don't enable this feauture in library crates. This should be done only
+## in final binary crates because it may affect other libraries.
+unsafe_remove_duplicate_checks = []
+## Implies `unsafe_remove_duplicate_checks`.
+##
+## Disables type registration entirely. Exists to be used in embedded environments
+## when every single preserved byte is important.
+##
+## If you use this feature, do run tests without it before deploying your code.
+##
+## If this feature is enabled, there is no way to ensure that uniqueness
+## of [`TypeId`]s is still guaranteed.
+unsafe_dont_register_types = ["unsafe_remove_duplicate_checks"]
+## This features mostly needed for testing code that used on target doesn't have
+## linking sections implemented on other platforms.
+##
+## It disables usage of link sections for gathering of existing type ids for uniqueness
+## check. Instead, it would call registration function for each for each type that
+## implements [`HasTypeId`]. That can cause longer compilation times an increase of binary size.
 dont_use_link_section = []
 
 [dependencies]
 ctor = { version = "0.4.2", default-features = false }
 small_type_id_proc_macro = { path = "../small_type_id_proc_macro", "version" = "0.1.0" }
 xxhash-rust = { version = "0.8.15", default-features = false, features = ["const_xxh32"] }
+
+document-features = { version = "0.2.11", optional = true }

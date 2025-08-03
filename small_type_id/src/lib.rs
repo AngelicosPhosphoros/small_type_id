@@ -65,59 +65,16 @@
 //! Verification code generally executes with complexity _O(n<sup>2</sup>)_
 //! although with very small constant on Windows and Linux, e.g. it processes 60000 types faster than 100 ms in debug build.
 //!
-//! However, if it is inacceptible, it can be disabled using [`unsafe_remove_duplicate_checks`](#feature-unsafe_remove_duplicate_checks)
+//! However, if it is inacceptible, it can be disabled using [`unsafe_remove_duplicate_checks`](#available-cargo-features)
 //! feature. Enabling this feature is equivalent to **running unsafe code** so please consult it documentation
 //! before enabling.
 //!
 //! If duplicate `TypeId`s detected, program would write some debug information to stderr
 //! and terminate with error before reaching `main`.
 //!
-//! ## Available features
+//! ## Available Cargo features
 //!
-//! ### Feature `debug_type_name`
-//!
-//! Saves type name in derive invocation of [`HasTypeId`](derive.HasTypeId.html) macro,
-//! allowing to printing conflicting types in case of collision of [`HasTypeId::TYPE_ID`] values.
-//!
-//! The purpose of this feature only to debug cases of [`TypeId`] collisions.
-//!
-//! It is disabled by default to avoid wasting place in binary for useless strings.
-//!
-//! ### Feature `unsafe_remove_duplicate_checks`
-//!
-//! Disables automatic verification of uniqueness of [`TypeId`]s.
-//! Use [`iter_registered_types`] function to run verification yourself.
-//!
-//! The purpose of this feature is
-//!
-//! * to avoid running any code before `main`
-//! * to avoid _O(n<sup>2</sup>)_ complexity of automatic verification
-//! * to prevent linking with libc or kernel32.
-//!
-//! Please, don't enable this feauture in library crates. This should be done only
-//! in final binary crates because it may affect other libraries.
-//!
-//! ### Feature `unsafe_dont_register_types`
-//!
-//! Implies `unsafe_remove_duplicate_checks`.
-//!
-//! Disables type registration entirely. Exists to be used in embedded environments
-//! when every single preserved byte is important.
-//!
-//! If you use this feature, do run tests without it before deploying your code.
-//!
-//! If this feature is enabled, there is no way to ensure that uniqueness
-//! of `TypeId`s is still guaranteed.
-//!
-//! ### Features `dont_use_link_section`
-//!
-//! This features mostly needed for testing code that used when target doesn't have
-//! linking sections implemented on platforms that have.
-//!
-//! It disables usage of link sections for gathering of existing type ids for uniqueness
-//! check. It would decrease performance because program would have an initialization function
-//! invokation for each type that implements [`HasTypeId`].
-//!
+#![cfg_attr(feature="document-features", doc = document_features::document_features!())]
 //! ## Semver breaking policy
 //!
 //! The following changes are not considered breaking:
@@ -325,14 +282,15 @@ pub struct TypeEntry {
     pub type_id: TypeId,
     /// This field are useful for debugging.
     /// **Do not** use it as key.
-    /// Available only if feature [`debug_type_name`](./index.html#feature-debug_type_name) is enabled.
+    /// Available only if feature [`debug_type_name`](./index.html#available-cargo-features) is enabled.
     #[cfg(feature = "debug_type_name")]
     pub debug_type_name: &'static str,
 }
 
 /// Allows iteration over types that implemented [`HasTypeId`] trait using derive macro.
 ///
-/// Doesn't work if feature [`unsafe_dont_register_types`](./index.html#feature-unsafe_dont_register_types) is enabled.
+/// Doesn't work if feature [`unsafe_dont_register_types`](./index.html#available-cargo-features) is enabled.
+/// Order of iteration is not specified and can change even between function invokations.
 pub fn iter_registered_types() -> impl Iterator<Item = TypeEntry> {
     implementation::pub_iter_registered_types()
 }
